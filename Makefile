@@ -1,0 +1,491 @@
+# Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI
+# Copyright (C) 2023-2025 IBM Corp.
+# SPDX-License-Identifier: Apache-2.0
+
+# $Id: 11e74a9d170bebbd8a2d431762e532ef31572db0 $
+#
+# Maintainer's makefile.
+#
+# ** KEEP THIS FILE SELF-CONTAINED! **
+
+me:= $(firstword $(MAKEFILE_LIST))
+
+# Prints usage message and exits.
+perl_usage=\
+  BEGIN {\
+    $$/ = "";\
+    print "Usage: ${MAKE} -f ${me} TARGET";\
+    print "Maintainer\047s makefile; the following targets are supported:";\
+    print "";\
+    my @tgts;\
+  }\
+  /\#\s([^\n]+)\n(\.PHONY:)\s([\w-]+)\n/ and do {\
+    my $$tgt = $$3;\
+    my $$doc = $$1;\
+    push(@tgts, sprintf("  %-20s  %s", $$tgt, $$doc));\
+  };\
+  END {\
+    print(join("\n", sort(@tgts)));\
+    print "";\
+  }\
+  ${NULL}
+
+.PHONY: usage
+usage:
+	@perl -wnle '${perl_usage}' ${MAKEFILE_LIST}
+
+PACKAGE?= $(shell ${PYTHON} -c 'import ${NAME}; print(${NAME}.__title__)')
+VERSION?= $(shell ${PYTHON} -c 'import ${NAME}; print(${NAME}.__version__)')
+DESCRIPTION?= $(shell ${PYTHON} -c 'import ${NAME}; print(${NAME}.__description__)')
+
+CHECK_COPYRIGHT?= yes
+CHECK_COPYRIGHT_EXTRA?= Makefile
+CHECK_COPYRIGHT_IGNORE?= setup.py
+CHECK_DEPS?= htmlcov-clean
+CHECK_FLAKE8?= yes
+CHECK_ISORT?= yes
+CHECK_MYPY?= yes
+CHECK_PYLINT?= yes
+CHECK_PYRIGHT?= yes
+CHECK_PYTEST?= yes
+CHECK_SYNTAX?= yes
+CHECK_SYNTAX_IGNORE?=
+COVERAGERC?= .coveragerc
+COVERAGERC_EXCLUDE_LINES?=
+COVERAGERC_OMIT?=
+FLAKE8?= ${PYTHON} -m flake8
+FLAKE8_OPERANDS?= ${PACKAGE} ${TESTS}
+FLAKE8_OPTIONS?= --config .flake8rc
+FLAKE8RC?= .flake8rc
+FLAKE8RC_IGNORE?= E226, E741, W503
+GEN_ALL_TARGETS?=
+ISORT?= ${PYTHON} -m isort
+ISORT_CFG?= .isort.cfg
+ISORT_CFG_ADD_IMPORTS?=
+ISORT_CFG_INCLUDE_TRAILING_COMMA?= True
+ISORT_CFG_MULTI_LINE_OUTPUT?= 3
+ISORT_CFG_ORDER_BY_TYPE?= False
+ISORT_OPERANDS?= ${PACKAGE} ${TESTS}
+ISORT_OPTIONS?= --check --diff
+MYPY?= ${PYTHON} -m mypy
+MYPY_OPERANDS?= ${PACKAGE} ${TESTS}
+MYPY_OPTIONS?= --show-error-context --show-error-codes
+PERL?= perl
+PIP?= ${PYTHON} -m pip
+PYLINT?= pylint
+PYLINT_OPERANDS?= ${PACKAGE} ${TESTS}
+PYLINT_OPTIONS?=
+PYLINTRC?= .pylintrc
+PYLINTRC_DISABLE?=
+PYRIGHT?= ${PYTHON} -m pyright
+PYRIGHT_OPERANDS?= ${PACKAGE} ${TESTS}
+PYRIGHT_OPTIONS?=
+PYRIGHTCONFIG_EXCLUDE?= []
+PYRIGHTCONFIG_JSON?= pyrightconfig.json
+PYRIGHTCONFIG_OPTIONS?= --warnings
+PYRIGHTCONFIG_REPORT_MISSING_IMPORTS?= true
+PYRIGHTCONFIG_REPORT_MISSING_TYPE_STUBS?= true
+PYTEST?= ${PYTHON} -m pytest
+PYTEST_ASYNCIO_DEFAULT_FIXTURE_LOOP_SCOPE?= class
+PYTEST_COV_OPTIONS?= --cov=${PACKAGE} --cov-report=html
+PYTEST_INI?= pytest.ini
+PYTEST_OPTIONS?= -ra
+PYTEST_SETENV?=
+PYTHON?= python
+PYUPGRADE?= ${PYTHON} -m pyupgrade
+PYUPGRADE_OPTIONS?= --exit-zero-even-if-changed --py39-plus
+SED?= sed
+SETUP_PY?= setup.py
+SETUP_PY_CLASSIFIERS?= []
+SETUP_PY_ENTRY_POINTS?= {}
+SETUP_PY_EXTRAS_REQUIRE?= {}
+SETUP_PY_EXTRAS_REQUIRE_?= {'all': ${SETUP_PY_EXTRAS_REQUIRE_ALL}, 'dev': ${SETUP_PY_EXTRAS_REQUIRE_DEV}, 'tests': ${SETUP_PY_EXTRAS_REQUIRE_TESTS}, **${SETUP_PY_EXTRAS_REQUIRE}}
+SETUP_PY_EXTRAS_REQUIRE_ALL= [*${SETUP_PY_EXTRAS_REQUIRE_TESTS}, *itertools.chain(*${SETUP_PY_EXTRAS_REQUIRE}.values())]
+SETUP_PY_EXTRAS_REQUIRE_DEV?= ['build', 'twine', *${SETUP_PY_EXTRAS_REQUIRE_ALL}]
+SETUP_PY_EXTRAS_REQUIRE_TESTS?= ['flake8', 'isort', 'mypy', 'pylint', 'pyright', 'pytest', 'pytest-asyncio', 'pytest-cov', 'pytest-mypy', 'pyupgrade', 'setuptools', 'tox']
+SETUP_PY_FIND_PACKAGES_EXCLUDE?= ['tests', 'tests.*']
+SETUP_PY_INCLUDE_PACKAGE_DATA?= True
+SETUP_PY_INSTALL_REQUIRES?= []
+SETUP_PY_PACKAGE_DATA?= dict()
+SETUP_PY_PACKAGE_DIR?= {'${PACKAGE}': '${PACKAGE}'}
+SETUP_PY_PYTHON_REQUIRES?= '>=3.9'
+SETUP_PY_ZIP_SAFE?= False
+TESTS?= tests
+TOX?= tox
+TOX_DEBUG_COMMAND?= python
+TOX_INI?= tox.ini
+TOX_INI_ENVLIST?= mypy, py{39,310,311,312,313,314}
+TOX_INI_EXTRAS?=
+TOX_INI_PASSENV?=
+TOX_INI_SKIP_MISSING_INTERPRETERS?= true
+TOX_OPTIONS?=
+TOX_SETENV?=
+
+include Makefile.conf
+
+CHECK_DEPS+= $(if $(filter yes,${CHECK_COPYRIGHT}),check-copyright)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_FLAKE8}),check-flake8)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_ISORT}),check-isort)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_MYPY}),check-mypy)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_PYLINT}),check-pylint)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_PYRIGHT}),check-pyright)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_PYTEST}),check-pytest)
+CHECK_DEPS+= $(if $(filter yes,${CHECK_SYNTAX}),check-syntax)
+PYTEST_OPTIONS+= $(if $(filter yes,${CHECK_MYPY}),--mypy)
+
+ECHO:= printf '%s\n'
+ECHO_SPLIT= ${ECHO} '$(2)' | ${SED} -e 's/\s*<line>/$(1)/g' -e 's,</line>,\n,g'
+
+P:= @${ECHO}
+P_SPLIT:= @$(call ECHO_SPLIT,$(1),$(2))
+
+# check sources and run testsuite
+.PHONY: check
+check: ${CHECK_DEPS}
+
+# check sources and run testsuite skipping slow tests
+.PHONY: checkfast
+checkfast:
+	${MAKE} check ${CHECKFAST}
+
+# run testsuite
+.PHONY: check-pytest
+check-pytest:
+	${PYTEST_SETENV} ${PYTEST} -c ${PYTEST_INI} --strict-config ${TESTS}
+
+# check sources using flake8
+.PHONY: check-flake8
+check-flake8:
+	${FLAKE8} ${FLAKE8_OPTIONS} ${FLAKE8_OPERANDS}
+
+# check sources using isort
+.PHONY: check-isort
+check-isort:
+	${ISORT} ${ISORT_OPTIONS} ${ISORT_OPERANDS}
+
+# check sources using mypy
+.PHONY: check-mypy
+check-mypy:
+	${MYPY} ${MYPY_OPTIONS} ${MYPY_OPERANDS}
+
+# check sources using pylint
+.PHONY: check-pylint
+check-pylint:
+	${PYLINT} ${PYLINT_OPTIONS} ${PYLINT_OPERANDS}
+
+# check sources using pyright
+.PHONY: check-pyright
+check-pyright:
+	${PYRIGHT} ${PYRIGHT_OPTIONS} ${PYRIGHT_OPERANDS}
+
+# check copyright
+.PHONY: check-copyright
+check-copyright: check-copyright-extra check-copyright-python
+
+.PHONY: check-copyright-python
+check-copyright-python:
+	@${DO_CHECK_COPYRIGHT} $(filter-out\
+	  ${CHECK_COPYRIGHT_IGNORE}, $(shell git ls-files '*.py'))
+
+.PHONY: check-copyright-extra
+check-copyright-extra:
+	@${DO_CHECK_COPYRIGHT} $(filter-out\
+	  ${CHECK_COPYRIGHT_IGNORE},\
+	  $(shell git ls-files ${CHECK_COPYRIGHT_EXTRA}))
+
+DO_CHECK_COPYRIGHT= ${PERL} -s -0777 -wnle '${perl_check_copyright}'
+perl_check_copyright_git_log_date:=\
+  git log --diff-filter=$1 --follow --format=%as -1 -- $$ARGV
+perl_check_copyright:=\
+  BEGIN {\
+    $$p = "\# " if !defined $$p;\
+    $$q = $$p if !defined $$q;\
+    $$t = "${COPYRIGHT}" if !defined $$t;\
+    $$c = "Copyright \\(C\\) (20\\d\\d)(-(20\\d\\d))?\\ ";\
+    $$l = "SPDX-License-Identifier: ${LICENSE}" if !defined $$l;\
+    $$regex = qr(\Q$$p\E$$c\Q$$t\E\n(\Q$$p\E$$c.*\n)*\Q$$q$$l\E);\
+    sub get_added_or_modified_year {\
+      my ($$filter, $$default) = (@_);\
+      my $$date;\
+      if ($$filter eq "M" && system("git diff --cached --quiet -- $$ARGV")) {\
+        $$date = `date -I`;\
+      } else {\
+        $$date = `$(call perl_check_copyright_git_log_date "$$filter")`;\
+      }\
+      if ($$date) {\
+        $$date =~ /^(\d\d\d\d)/s;\
+        return $$1;\
+      } else {\
+        return $$default;\
+      }\
+    }\
+    $$errcnt = 0;\
+    sub put_error {\
+      warn("error:$$ARGV: $$_[0]\n");\
+      $$errcnt++;\
+    }\
+  }\
+  my $$added = get_added_or_modified_year("A");\
+  my $$modified = get_added_or_modified_year("M", $$added);\
+  if ($$modified ge ${COPYRIGHT_START_YEAR}) {\
+    if (/$$regex/m) {\
+      my $$cstart = $$1;\
+      my $$cend = $$3 // $$cstart;\
+      put_error("copyright: bad start year ($$cstart)")\
+        if !($$cstart le ${COPYRIGHT_START_YEAR});\
+      put_error("copyright: bad end year ($$cend)")\
+        if !($$modified eq $$cend);\
+    } else {\
+      put_error("copyright: bad or missing license tag");\
+    }\
+  }\
+  END { exit($$errcnt); }\
+  ${NULL}
+
+# check syntax
+.PHONY: check-syntax
+check-syntax: check-syntax-python
+
+.PHONY: check-syntax-python
+check-syntax-python:
+	@${DO_CHECK_SYNTAX_PYTHON} $(filter-out\
+	  ${CHECK_SYNTAX_IGNORE}, $(shell git ls-files '*.py'))
+
+DO_CHECK_SYNTAX_PYTHON= ${PERL} -s -00 -wnle '${perl_check_syntax_python}'
+
+perl_check_syntax_python:=\
+  BEGIN {\
+    $$errcnt = 0;\
+    sub put_error {\
+      warn("error:$$ARGV: $$_[0]\n");\
+      $$errcnt++;\
+    }\
+  }\
+  if (/^((\s\s\s\s+)(Parameters|Returns)(.*?))\"\"\"/s\
+      or /^((\s\s\s\s+)(Parameters|Returns)(.*))$$/s) {\
+    $$section = $$1;\
+    $$header = $$3;\
+    sub bad_section {\
+      $$explain = shift;\
+      put_error("bad $$header ($$explain):\n$$section\n");\
+    }\
+    $$section_indent = length($$2);\
+    $$section_text = $$4;\
+    if ($$section_text !~ /^:\n/) {\
+      bad_section("missing colon-newline");\
+    } else {\
+      $$section_text =~ /^:\n(.*?)\s*(\"\"\")?$$/s;\
+      if (!defined $$1) {\
+        bad_section("syntax error");\
+      }\
+      foreach (split "\n", $$1) {\
+        $$_ =~ /^(\s*)(.*)$$/;\
+        if (length($$1) != $$section_indent + 3) {\
+          bad_section("misalignment");\
+        }\
+        if ($$header eq "Parameters") {\
+          $$line = $$2;\
+          if ($$line !~ /^\w+:/) {\
+            bad_section("missing colon in \"$$line");\
+          }\
+          if ($$line !~ /\.$$/) {\
+            bad_section("missing final dot in \"$$line\"");\
+          }\
+        }\
+      }\
+      if ($$header eq "Returns" and $$section_text !~ /\.\s*$$/) {\
+        bad_section("missing final dot");\
+      }\
+    }\
+  }\
+  END { exit($$errcnt); }\
+  ${NULL}
+
+# upgrade Python syntax
+.PHONY: pyupgrade
+pyupgrade:
+	${PYUPGRADE} ${PYUPGRADE_OPTIONS} $(shell git ls-files '*.py')
+
+# remove generated files
+.PHONY: clean
+clean: dist-clean htmlcov-clean
+	-${PYTHON} setup.py clean --all
+
+.PHONY: dist-clean
+dist-clean:
+	-rm -rf ./dist ./${PACKAGE}.egg-info
+
+.PHONY: htmlcov-clean
+htmlcov-clean:
+	-rm -rf ./htmlcov
+
+GEN_ALL_TARGETS+= gen-coveragerc
+
+# generate .coveragerc
+.PHONY: gen-coveragerc
+gen-coveragerc:
+	$P 'generating ${COVERAGERC}'
+	$P '[report]' >${COVERAGERC}
+	$P 'omit = ${COVERAGERC_OMIT}' >>${COVERAGERC}
+	$P 'exclude_lines =' >>${COVERAGERC}
+	$P '    @(abc\.)?abstractmethod' >>${COVERAGERC}
+	$P '    class .*\bProtocol\):' >>${COVERAGERC}
+	$P '    def __repr__' >>${COVERAGERC}
+	$P '    def __str__' >>${COVERAGERC}
+	$P '    if 0:' >>${COVERAGERC}
+	$P '    if __name__ == .__main__.:' >>${COVERAGERC}
+	$P '    pragma: no cover' >>${COVERAGERC}
+	$P '    raise AssertionError' >>${COVERAGERC}
+	$P '    raise NotImplementedError' >>${COVERAGERC}
+	@$(call ECHO_SPLIT,    ,${COVERAGERC_EXCLUDE_LINES}) >>${COVERAGERC}
+
+GEN_ALL_TARGETS+= gen-flake8rc
+
+# generate .flake8rc
+.PHONY: gen-flake8rc
+gen-flake8rc:
+	$P 'generating ${FLAKE8RC}'
+	$P '[flake8]' >${FLAKE8RC}
+	$P 'ignore = ${FLAKE8RC_IGNORE}' >>${FLAKE8RC}
+
+GEN_ALL_TARGETS+= gen-isort-cfg
+
+# generage .isort.cfg
+.PHONY: gen-isort-cfg
+gen-isort-cfg:
+	$P 'generating ${ISORT_CFG}'
+	$P '[settings]' >${ISORT_CFG}
+	$P 'add_imports = ${ISORT_CFG_ADD_IMPORTS}' >> ${ISORT_CFG}
+	$P 'include_trailing_comma = ${ISORT_CFG_INCLUDE_TRAILING_COMMA}' >>${ISORT_CFG}
+	$P 'multi_line_output = ${ISORT_CFG_MULTI_LINE_OUTPUT}' >>${ISORT_CFG}
+	$P 'order_by_type = ${ISORT_CFG_ORDER_BY_TYPE}' >>${ISORT_CFG}
+
+# generate .pylintrc
+GEN_ALL_TARGETS+= gen-pylintrc
+
+.PHONY: gen-pylintrc
+gen-pylintrc:
+	$P 'generating ${PYLINTRC}'
+	$P '[MAIN]' > ${PYLINTRC}
+	$P 'disable=' >> ${PYLINTRC}
+	@$(call ECHO_SPLIT,    ,${PYLINTRC_DISABLE}) >>${PYLINTRC}
+
+GEN_ALL_TARGETS+= gen-pyrightconfig-json
+
+# generate pyrightconfig.json
+.PHONY: gen-pyrightconfig-json
+gen-pyrightconfig-json:
+	$P 'generating ${PYRIGHTCONFIG_JSON}'
+	$P '{' >${PYRIGHTCONFIG_JSON}
+	$P '  "exclude": ${PYRIGHTCONFIG_EXCLUDE},' >>${PYRIGHTCONFIG_JSON}
+	$P '  "reportMissingImports": ${PYRIGHTCONFIG_REPORT_MISSING_IMPORTS},' >>${PYRIGHTCONFIG_JSON}
+	$P '  "reportMissingTypeStubs": ${PYRIGHTCONFIG_REPORT_MISSING_TYPE_STUBS}' >>${PYRIGHTCONFIG_JSON}
+	$P '}' >>${PYRIGHTCONFIG_JSON}
+
+GEN_ALL_TARGETS+= gen-pytest-ini
+
+# generate pytest.ini
+.PHONY: gen-pytest-ini
+gen-pytest-ini:
+	$P 'generating ${PYTEST_INI}'
+	$P '[pytest]' >${PYTEST_INI}
+	$P 'addopts = ${PYTEST_OPTIONS} ${PYTEST_COV_OPTIONS}' >>${PYTEST_INI}
+	$P 'asyncio_default_fixture_loop_scope = ${PYTEST_ASYNCIO_DEFAULT_FIXTURE_LOOP_SCOPE}' >>${PYTEST_INI}
+	$P 'testpaths = ${TESTS}' >>${PYTEST_INI}
+
+GEN_ALL_TARGETS+= gen-setup-py
+
+# generate setup.py
+.PHONY: gen-setup-py
+gen-setup-py:
+	$P 'generating ${SETUP_PY}'
+	$P '# ** GENERATED FILE: DO NOT EDIT! **' >${SETUP_PY}
+	$P 'import itertools' >>${SETUP_PY}
+	$P 'import re' >>${SETUP_PY}
+	$P 'import setuptools' >>${SETUP_PY}
+	$P "with open('${PACKAGE}/__version__.py', 'r', encoding='utf-8') as fp:" >>${SETUP_PY}
+	$P '    text = fp.read()' >>${SETUP_PY}
+	$P "    VERSION, = re.findall(r\"__version__\s*=\s*'(.*)'\", text)" >>${SETUP_PY}
+	$P "with open('README.md', 'r', encoding='utf-8') as fp:" >>${SETUP_PY}
+	$P '    README = fp.read()' >>${SETUP_PY}
+	$P 'setuptools.setup(' >>${SETUP_PY}
+	$P "    name='${NAME}'," >>${SETUP_PY}
+	$P '    version=VERSION,' >>${SETUP_PY}
+	$P "    description='${DESCRIPTION}'," >>${SETUP_PY}
+	$P '    long_description=README,' >>${SETUP_PY}
+	$P "    long_description_content_type='text/markdown'," >>${SETUP_PY}
+	$P "    author='${AUTHOR}'," >>${SETUP_PY}
+	$P "    author_email='${EMAIL}'," >>${SETUP_PY}
+	$P "    url='${URL}'," >>${SETUP_PY}
+	$P "    license='${LICENSE}'," >>${SETUP_PY}
+	$P "    classifiers=${SETUP_PY_CLASSIFIERS}," >>${SETUP_PY}
+	$P "    python_requires=${SETUP_PY_PYTHON_REQUIRES}," >>${SETUP_PY}
+	$P "    packages=setuptools.find_packages(exclude=${SETUP_PY_FIND_PACKAGES_EXCLUDE})," >>${SETUP_PY}
+	$P "    package_data=${SETUP_PY_PACKAGE_DATA}," >>${SETUP_PY}
+	$P '    include_package_data=True,' >>${SETUP_PY}
+	$P "    package_dir=${SETUP_PY_PACKAGE_DIR}," >>${SETUP_PY}
+	$P "    install_requires=${SETUP_PY_INSTALL_REQUIRES}," >>${SETUP_PY}
+	$P "    extras_require=${SETUP_PY_EXTRAS_REQUIRE_}," >>${SETUP_PY}
+	$P "    entry_points=${SETUP_PY_ENTRY_POINTS}," >>${SETUP_PY}
+	$P "    zip_safe=${SETUP_PY_ZIP_SAFE}," >>${SETUP_PY}
+	$P ')' >>${SETUP_PY}
+
+GEN_ALL_TARGETS+= gen-tox-ini
+
+# generate tox.ini
+.PHONY: gen-tox-ini
+gen-tox-ini:
+	$P 'generating ${TOX_INI}'
+	$P '[tox]' >${TOX_INI}
+	$P 'envlist = ${TOX_INI_ENVLIST}' >>${TOX_INI}
+	$P 'skip_missing_interpreters = ${TOX_INI_SKIP_MISSING_INTERPRETERS}' >>${TOX_INI}
+	$P '' >>${TOX_INI}
+	$P '[testenv]' >>${TOX_INI}
+	$P 'commands = {posargs:py.test}' >>${TOX_INI}
+	$P 'extras = ${TOX_INI_EXTRAS}' >>${TOX_INI}
+	$P 'passenv =' >>${TOX_INI}
+	@$(call ECHO_SPLIT,    ,${TOX_INI_PASSENV}) >> ${TOX_INI}
+	$P '[testenv:mypy]' >>${TOX_INI}
+	$P 'commands = mypy -p ${PACKAGE}' >>${TOX_INI}
+
+# run all gen-* targets
+.PHONY: gen-all
+gen-all: ${GEN_ALL_TARGETS}
+
+# refresh indents
+.PHONY: ident
+ident:
+	for f in `grep ident .gitattributes | sed 's/\s*ident$$//'`; do\
+	  touch $$f; git checkout $$f; ${ECHO} "`head -n1 $$f` $$f";\
+	done
+
+# install package
+.PHONY: install
+install:
+	${PIP} install --upgrade -e .
+
+# install development dependencies
+.PHONY: install-dev
+install-dev:
+	${PIP} install --upgrade '.[dev]'
+
+# run tox
+.PHONY: tox
+tox:
+	${TOX_SETENV} ${TOX} ${TOX_OPTIONS} $(if ${ENV},-e ${ENV})
+
+# debug tox environment
+.PHONY: tox-debug
+tox-debug:
+	${TOX_SETENV} ${TOX} -e $(or ${ENV},py311) -- ${TOX_DEBUG_COMMAND}
+
+# uninstall package
+.PHONY: uninstall
+uninstall:
+	${PIP} uninstall ${NAME}
+
+# publish package
+.PHONY: publish
+publish: dist-clean
+	${PYTHON} -m build
+	${PYTHON} -m twine upload dist/*

@@ -1,0 +1,5 @@
+{
+  "exclude": [],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": true
+}
