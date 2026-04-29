@@ -4,63 +4,62 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 import re
 
 import typing_extensions as ty
 
-Symbol = ty.NewType('Symbol', str)
-TSymbol: ty.TypeAlias = Symbol | str
+Symbol: ty.TypeAlias = str
+Tape: ty.TypeAlias = str
 
-Tape = ty.NewType('Tape', str)
-TTape: ty.TypeAlias = Tape | str
-
-_logger: Final[logging.Logger] = logging.getLogger(__name__)
+_logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class UTM:
     """Universal Turing Machine."""
 
-    #: State of the simulated machine (indicator).
-    Q: ty.ClassVar[Symbol] = Symbol('Q')
+    SYM_Q: ty.Final[str] = 'Q'
+    SYM_S: ty.Final[str] = 'S'
+    SYM_0: ty.Final[str] = '0'
+    SYM_1: ty.Final[str] = '1'
+    SYM_B: ty.Final[str] = '_'
+    SYM_L: ty.Final[str] = '<'
+    SYM_R: ty.Final[str] = '>'
+    SYM_X: ty.Final[str] = '.'
 
-    #: Symbol of the simulated machine (indicator).
-    S: ty.ClassVar[Symbol] = Symbol('S')
+    _alphabet: ty.ClassVar[frozenset[Symbol]] = frozenset([
+        SYM_Q,                    # state of the simulated machine
+        SYM_S,                    # symbol of the simulated machine
+        SYM_0,                    # bit 0
+        SYM_1,                    # bit 1
+        SYM_B,                    # blank
+        SYM_L,                    # left movement indicator
+        SYM_R,                    # right movement indicator
+        SYM_X,                    # ignored
+    ])
 
-    #: The binary digit "0".
-    Zero: ty.ClassVar[Symbol] = Symbol('0')
-
-    #: The binary digit "1".
-    One: ty.ClassVar[Symbol] = Symbol('1')
-
-    #: The blank symbol.
-    Blank: ty.ClassVar[Symbol] = Symbol('_')
-
-    #: Left-movement indicator.
-    Left: ty.ClassVar[Symbol] = Symbol('<')
-
-    #: Right-movement indicator.
-    Right: ty.ClassVar[Symbol] = Symbol('>')
-
-    #: Comment (pseudo-symbol, deleted from input).
-    Comment: ty.ClassVar[Symbol] = Symbol('.')
-
-    _valid_symbols: ty.ClassVar[frozenset[Symbol]] = frozenset([
-        Q, S, Zero, One, Blank, Left, Right, Comment])
+    _tr: ty.ClassVar[dict[str, Symbol]] = {
+        '₀': SYM_0,
+        '₁': SYM_1,
+        ' ': SYM_X,
+        '|': SYM_X,
+    }
 
     @classmethod
     def check_symbol(cls, value: ty.Any) -> Symbol:
         """Coerces value to symbol."""
-        if isinstance(value, str) and value in cls._valid_symbols:
-            return Symbol(value)
-        else:
-            raise ValueError(f'bad symbol: {value}')
+        if isinstance(value, str):
+            value = cls._tr.get(value, value)
+            if value in cls._alphabet:
+                return value
+        raise ValueError(f'bad symbol: {value}')
 
     @classmethod
     def check_tape(cls, value: ty.Any) -> Tape:
-        """Coerces value to tape."""
+        """Coerces value to tape (sequence of symbols)."""
         if isinstance(value, str):
-            return Tape(''.join(map(
-                cls.check_symbol, value)).replace(cls.Comment, ''))
+            return ''.join(map(cls.check_symbol, value)).replace(
+                cls.SYM_X, '')
         else:
             raise ValueError(f'bad tape: {value}')
 
@@ -70,17 +69,20 @@ class UTM:
 
     @classmethod
     def _pad(cls, tape: Tape) -> Tape:
-        s = tape.strip(cls.Blank)
-        return Tape(s) if s == '' else Tape(cls.Blank + s + cls.Blank)
+        s = tape.strip(cls.SYM_B)
+        if s == '':
+            return Tape(cls.SYM_B)
+        else:
+            return Tape(cls.SYM_B + s + cls.SYM_B)
 
     @classmethod
     def _unpad(cls, tape: Tape) -> Tape:
-        return Tape(tape.strip(cls.Blank) or cls.Blank)
+        return Tape(tape.strip(cls.SYM_B) or cls.SYM_B)
 
     machine: Tape
     work: Tape
-    current_state: Tape
-    current_symbol: Tape
+    state: Tape
+    symbol: Tape
     left_symbol: Tape
     movement: Tape
     next_state: Tape
@@ -90,27 +92,27 @@ class UTM:
 
     def __init__(
             self,
-            machine: TTape,
-            work: TTape,
-            current_state: TTape | None = None,
-            current_symbol: TTape | None = None,
-            left_symbol: TTape | None = None,
-            movement: TTape | None = None,
-            next_state: TTape | None = None,
-            next_symbol: TTape | None = None,
-            subst1: TTape | None = None,
-            subst2: TTape | None = None
+            machine: Tape,
+            work: Tape,
+            state: Tape | None = SYM_B,
+            symbol: Tape | None = SYM_B,
+            left_symbol: Tape | None = SYM_B,
+            movement: Tape | None = SYM_B,
+            next_state: Tape | None = SYM_B,
+            next_symbol: Tape | None = SYM_B,
+            subst1: Tape | None = SYM_B,
+            subst2: Tape | None = SYM_B
     ) -> None:
         self.machine = self._check_and_pad(machine)
         self.work = self._check_and_pad(work)
-        self.current_state = self._check_and_pad(current_state or '')
-        self.current_symbol = self._check_and_pad(current_symbol or '')
-        self.left_symbol = self._check_and_pad(left_symbol or '')
-        self.movement = self._check_and_pad(movement or '')
-        self.next_state = self._check_and_pad(next_state or '')
-        self.next_symbol = self._check_and_pad(next_symbol or '')
-        self.subst1 = self._check_and_pad(subst1 or '')
-        self.subst2 = self._check_and_pad(subst2 or '')
+        self.state = self._check_and_pad(state)
+        self.symbol = self._check_and_pad(symbol)
+        self.left_symbol = self._check_and_pad(left_symbol)
+        self.movement = self._check_and_pad(movement)
+        self.next_state = self._check_and_pad(next_state)
+        self.next_symbol = self._check_and_pad(next_symbol)
+        self.subst1 = self._check_and_pad(subst1)
+        self.subst2 = self._check_and_pad(subst2)
         _logger.info('[init] machine: %s', self.machine)
         _logger.info('[init] work: %s', self.work)
 
@@ -133,8 +135,8 @@ class UTM:
         return {
             'machine': self.machine,
             'work': self.work,
-            'current_state': self.current_state,
-            'current_symbol': self.current_symbol,
+            'state': self.state,
+            'symbol': self.symbol,
             'left_symbol': self.left_symbol,
             'movement': self.movement,
             'next_state': self.next_state,
@@ -142,109 +144,148 @@ class UTM:
             'subst1': self.subst1,
             'subst2': self.subst2}
 
-    _re_01: ty.ClassVar[str] =\
-        '[' + Zero + One + ']'
+    @classmethod
+    def load_string(cls, s: str) -> ty.Self:
+        """Loads UTM from string."""
+        machine: str = ''
+        work: str = ''
+        it = filter(lambda l: not l.startswith('#'),
+                    map(str.strip, s.splitlines()))
+        while True:
+            line = next(it, '')
+            if not line:
+                break
+            machine += line
+        for line in it:
+            work += line
+        return cls(machine, work)
 
-    _re_01s: ty.ClassVar[str] =\
-        _re_01 + '+'
+    @classmethod
+    def load_file(cls, path: pathlib.Path | str) -> ty.Self:
+        with open(pathlib.Path(path), 'rt', encoding='utf-8') as fp:
+            return cls.load_string(fp.read())
 
-    _re_Qx: ty.ClassVar[str] =\
-        Q + _re_01s
+    @property
+    def _re01(self) -> str:
+        return '[' + self.SYM_0 + self.SYM_1 + ']'
 
-    _re_Sx_or_blank: ty.ClassVar[str] =\
-        '(?:' + S + _re_01s + '|' + Blank + ')'
+    @property
+    def _re01s(self) -> str:
+        return self._re01 + '+'
 
-    _re_LR: ty.ClassVar[str] =\
-        '[' + Left + Right + ']'
+    @property
+    def _reQn(self) -> str:
+        return self.SYM_Q + self._re01s
+
+    @property
+    def _reSn(self) -> str:
+        return '(?:' + self.SYM_S + self._re01s + '|' + self.SYM_B + ')'
+
+    @property
+    def _reLR(self) -> str:
+        return '[' + self.SYM_L + self.SYM_R + ']'
 
     def step1(self) -> None:
-        """Step 1: Load current state."""
-        m = re.search(
-            rf'({self._re_Qx})[{self.S}{self.Blank}]',
-            str(self.work))
+        """Step 1: Load `state` and `symbol`."""
+        m = re.search(f'({self._reQn})({self._reSn})', self.work)
         if m is None:
             raise RuntimeError(f'bad work: {self.work}')
-        self.current_state = self._check_and_pad(m.group(1))
-        _logger.info('[step 1] current state: %s', self.current_state)
+        self.state = self._check_and_pad(m.group(1))
+        self.symbol = self._check_and_pad(m.group(2))
+        _logger.info('[step 1] state: %s', self.state)
+        _logger.info('[step 1] symbol: %s', self.symbol)
 
     def step2(self) -> None:
-        """Step 2: Load current symbol."""
-        assert self.current_state
-        Qs = self._unpad(self.current_state)
-        m = re.search(rf'{Qs}({self._re_Sx_or_blank})', str(self.work))
-        if m is None:
-            raise RuntimeError(f'bad work: {self.work}')
-        self.current_symbol = self._check_and_pad(m.group(1))
-        _logger.info('[step 2] current symbol: %s', self.current_symbol)
-
-    def step3(self) -> None:
-        """Step 3: Load next state, next symbol and movement."""
-        assert self.current_state
-        Qs = self._unpad(self.current_state)
-        Sw = self._unpad(self.current_symbol)
+        """Step 2: Load `next_state`, `next_symbol` and `movement`."""
+        Qs = self._unpad(self.state)
+        Sw = self._unpad(self.symbol)
         m = re.search(
-            rf'{Qs}{Sw}({self._re_Qx})({self._re_Sx_or_blank})({self._re_LR})',
-            str(self.machine))
+            rf'{Qs}{Sw}({self._reQn})({self._reSn})({self._reLR})',
+            self.machine)
         if m is None:
             raise RuntimeError(f'bad machine: {self.machine}')
         Qy, Sz, m = m.groups()  # type: ignore
-        _logger.info('[step 3] %s%s ↦ %s%s%s', Qs, Sw, Qy, Sz, m)
+        _logger.info('[step 2] %s%s ↦ %s%s%s', Qs, Sw, Qy, Sz, m)
         self.next_state = self._check_and_pad(Qy)
         self.next_symbol = self._check_and_pad(Sz)
         self.movement = self._check_and_pad(m)
-        _logger.info('[step 3] next state: %s', self.next_state)
-        _logger.info('[step 3] next symbol: %s', self.next_symbol)
-        _logger.info('[step 3] movement: %s', self.movement)
+        _logger.info('[step 2] next state: %s', self.next_state)
+        _logger.info('[step 2] next symbol: %s', self.next_symbol)
+        _logger.info('[step 2] movement: %s', self.movement)
+
+    def step3(self) -> None:
+        """Step 3: Load `left_symbol`."""
+        m = re.search(rf'({self._reSn}){self._reQn}', self.work)
+        self.left_symbol = self._check_and_pad(
+            m.group(1) if m is not None else self.SYM_B)
+        _logger.info('[step 3] left symbol: %s', self.left_symbol)
 
     def step4(self) -> None:
-        """Step4: Load left symbol."""
-        assert self.work
-        m = re.search(
-            rf'({self._re_Sx_or_blank}){self._re_Qx}',
-            str(self.work))
-        self.left_symbol = self._check_and_pad(
-            m.group(1) if m is not None else self.Blank)
-        _logger.info('[step 4] left symbol: %s', self.left_symbol)
-
-    def step5(self) -> None:
-        """Step 5: Load subst1."""
-        assert self.current_state
-        assert self.movement
-        Qs = self._unpad(self.current_state)
-        Sw = self._unpad(self.current_symbol)
+        """Step 4: Load `subst1`."""
+        Qs = self._unpad(self.state)
+        Sw = self._unpad(self.symbol)
         Su = self._unpad(self.left_symbol)
-        m = self._unpad(self.movement)
-        assert m == self.Left or m == self.Right
-        if m == self.Left:
+        mov = self._unpad(self.movement)
+        if mov == self.SYM_L:
             self.subst1 = self._check_and_pad(Su + Qs + Sw)
-        elif m == self.Right:
+        elif mov == self.SYM_R:
             self.subst1 = self._check_and_pad(Qs + Sw)
         else:
             raise RuntimeError('should not get here')
-        _logger.info('[step 5] subst1: %s', self.subst1)
+        _logger.info('[step 4] subst1: %s', self.subst1)
 
-    def step6(self) -> None:
-        """Step 6: Load subst2"""
-        assert self.next_state
-        assert self.movement
+    def step5(self) -> None:
+        """Step 5: Load `subst2`"""
         Qy = self._unpad(self.next_state)
         Sz = self._unpad(self.next_symbol)
         Su = self._unpad(self.left_symbol)
-        m = self._unpad(self.movement)
-        if m == self.Left:
+        mov = self._unpad(self.movement)
+        if mov == self.SYM_L:
             self.subst2 = self._check_and_pad(Qy + Su + Sz)
-        elif m == self.Right:
+        elif mov == self.SYM_R:
             self.subst2 = self._check_and_pad(Sz + Qy)
         else:
             raise RuntimeError('should not get here')
-        _logger.info('[step 6] subst2: %s', self.subst2)
+        _logger.info('[step 5] subst2: %s', self.subst2)
 
-    def step7(self) -> None:
-        """Step 7: Replace subst1 by subst2 in work."""
-        assert self.subst1
-        assert self.subst2
+    def step6(self) -> None:
+        """Step 6: Replace `subst1` by `subst2` in `work`."""
         s1 = self._unpad(self.subst1)
         s2 = self._unpad(self.subst2)
         self.work = self._check_and_pad(
             self._unpad(self.work).replace(s1, s2, 1))
-        _logger.info('[step 7] work: %s', self.work)
+        _logger.info('[step 6] work: %s', self.work)
+
+    class Run:
+        """The current run."""
+
+        #: Parent UTM.
+        utm: UTM
+
+        #: Current step.
+        step: int
+
+        #: Total steps.
+        total: int
+
+        def __init__(self, utm: UTM) -> None:
+            self.utm = utm
+            self.step = 0
+            self.total = 0
+
+        def __str__(self) -> str:
+            def it() -> ty.Iterator[str]:
+                yield (f'#{self.total} (after step{self.step})')
+                yield str(self.utm)
+                yield ''
+            return '\n'.join(it())
+
+        def __next__(self) -> ty.Self:
+            self.step = (self.step % 6) + 1
+            getattr(self.utm, f'step{self.step}')()
+            self.total += 1
+            return self
+
+    def run(self) -> Run:
+        """Runs the UTM."""
+        return self.Run(self)
