@@ -3,6 +3,6 @@
 
 from __future__ import annotations
 
-__description__ = 'UTM-LLM'
-__title__ = 'utmllm'
+__description__ = 'An LLM-based Universal Turing Machine Executor'
+__title__ = 'umllm'
 __version__ = '0.0.1'

@@ -15,7 +15,7 @@ Tape: ty.TypeAlias = str
 _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 
 
-class UTM:
+class UM:
     """Universal Turing Machine."""
 
     SYM_Q: ty.Final[str] = 'Q'
@@ -127,11 +127,11 @@ class UTM:
 
     @classmethod
     def of_dict(cls, value: dict[str, str]) -> ty.Self:
-        """Converts dictionary to UTM."""
+        """Converts dictionary to UM."""
         return cls(**value)
 
     def to_dict(self) -> dict[str, str]:
-        """Converts UTM to dictionary."""
+        """Converts UM to dictionary."""
         return {
             'machine': self.machine,
             'work': self.work,
@@ -146,7 +146,7 @@ class UTM:
 
     @classmethod
     def load_string(cls, s: str) -> ty.Self:
-        """Loads UTM from string."""
+        """Loads UM from string."""
         machine: str = ''
         work: str = ''
         it = filter(lambda l: not l.startswith('#'),
@@ -259,8 +259,8 @@ class UTM:
     class Run:
         """The current run."""
 
-        #: Parent UTM.
-        utm: UTM
+        #: Parent UM.
+        um: UM
 
         #: Current step.
         step: int
@@ -268,24 +268,24 @@ class UTM:
         #: Total steps.
         total: int
 
-        def __init__(self, utm: UTM) -> None:
-            self.utm = utm
+        def __init__(self, um: UM) -> None:
+            self.um = um
             self.step = 0
             self.total = 0
 
         def __str__(self) -> str:
             def it() -> ty.Iterator[str]:
                 yield (f'#{self.total} (after step{self.step})')
-                yield str(self.utm)
+                yield str(self.um)
                 yield ''
             return '\n'.join(it())
 
         def __next__(self) -> ty.Self:
             self.step = (self.step % 6) + 1
-            getattr(self.utm, f'step{self.step}')()
+            getattr(self.um, f'step{self.step}')()
             self.total += 1
             return self
 
     def run(self) -> Run:
-        """Runs the UTM."""
+        """Runs the UM."""
         return self.Run(self)

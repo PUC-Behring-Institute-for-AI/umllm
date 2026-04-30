@@ -17,7 +17,7 @@ except ImportError as err:
 import typing_extensions as ty
 
 from . import __description__, __title__, __version__
-from .utm import UTM
+from .um import UM
 
 _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
     'load',
     type=pathlib.Path,
     metavar='PATH',
-    help='UTM to load.',
+    help='UM to load.',
 )
 @click.option(
     '-v', '--verbose',
@@ -41,9 +41,9 @@ _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 def cli(verbose: bool, load: pathlib.Path | None = None) -> None:
     if verbose:
         logging.basicConfig(level=logging.INFO)
-    run: UTM.Run | None = None
+    run: UM.Run | None = None
     if load:
-        run = UTM.load_file(load).run()
+        run = UM.load_file(load).run()
     while True:
         try:
             res = click.prompt(f'{__title__}')
@@ -53,24 +53,24 @@ def cli(verbose: bool, load: pathlib.Path | None = None) -> None:
         if 'help'.startswith(cmd):
             print('''\
 (h)elp           display this help
-(l)oad <file>    load UTM from file
+(l)oad <file>    load UM from file
 (n)ext           executes the next step
-(p)rint          print UTM state
+(p)rint          print UM state
 (q)uit           quit
             ''')
         elif 'load'.startswith(cmd):
             if not args:
                 print('error: missing <file> argument', file=sys.stderr)
                 continue
-            run = UTM.load_file(args[0]).run()
+            run = UM.load_file(args[0]).run()
         elif 'next'.startswith(cmd):
             if not run:
-                print('error: no UTM loaded', file=sys.stderr)
+                print('error: no UM loaded', file=sys.stderr)
                 continue
             run = next(run)
         elif 'print'.startswith(cmd):
             if not run:
-                print('error: no UTM loaded', file=sys.stderr)
+                print('error: no UM loaded', file=sys.stderr)
                 continue
             click.echo(run)
         elif 'quit'.startswith(cmd):

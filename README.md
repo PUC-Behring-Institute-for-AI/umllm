@@ -1,1 +1,1 @@
-# UTMLLM: Controlled simulation of a Universal Turing Machine by LLMs
+# UMLLM: An LLM-based Universal Turing Machine Executor
