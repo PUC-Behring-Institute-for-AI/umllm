@@ -34,8 +34,9 @@ class Test(unittest.TestCase):
             'Q0S0Q0S0>Q0S1Q0S1>Q0_Q1_<Q1S0Q10S1>Q1S1Q1S0<Q1_Q10S1>')
 
     def test__init__(self) -> None:
-        um = UM('Q0S0Q0S0>', 'Q0S0')
+        um = UM('Q0S0Q0S0>', 'Q0', 'Q0S0')
         self.assertEqual(um.machine, '_Q0S0Q0S0>_')
+        self.assertEqual(um.halt, '_Q0_')
         self.assertEqual(um.work, '_Q0S0_')
         self.assertEqual(um.state, '_')
         self.assertEqual(um.symbol, '_')
@@ -45,6 +46,9 @@ class Test(unittest.TestCase):
         self.assertEqual(um.next_symbol, '_')
         self.assertEqual(um.subst1, '_')
         self.assertEqual(um.subst2, '_')
+        self.assertEqual(um.steps, 0)
+        self.assertEqual(um.stepno, 0)
+        self.assertEqual(um.cycles, 0)
 
 
 if __name__ == '__main__':

@@ -41,9 +41,9 @@ _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 def cli(verbose: bool, load: pathlib.Path | None = None) -> None:
     if verbose:
         logging.basicConfig(level=logging.INFO)
-    run: UM.Run | None = None
+    um: UM | None = None
     if load:
-        run = UM.load_file(load).run()
+        um = UM.load_file(load)
     while True:
         try:
             res = click.prompt(f'{__title__}')
@@ -54,30 +54,45 @@ def cli(verbose: bool, load: pathlib.Path | None = None) -> None:
             print('''\
 (h)elp           display this help
 (l)oad <file>    load UM from file
-(n)ext           executes the next step
 (p)rint          print UM state
+(r)un            run until UM halts
+(c)ycle          cycle UM once
+(s)tep           step UM once
 (q)uit           quit
             ''')
         elif 'load'.startswith(cmd):
             if not args:
-                print('error: missing <file> argument', file=sys.stderr)
+                _error('missing <file> argument')
                 continue
-            run = UM.load_file(args[0]).run()
-        elif 'next'.startswith(cmd):
-            if not run:
-                print('error: no UM loaded', file=sys.stderr)
-                continue
-            run = next(run)
+            um = UM.load_file(args[0])
         elif 'print'.startswith(cmd):
-            if not run:
-                print('error: no UM loaded', file=sys.stderr)
+            if not um:
+                _error('no UM loaded')
                 continue
-            click.echo(run)
+            click.echo(um)
+        elif 'run'.startswith(cmd):
+            if not um:
+                _error('no UM loaded')
+                continue
+            um.run()
+        elif 'cycle'.startswith(cmd):
+            if not um:
+                _error('no UM loaded')
+                continue
+            um.cycle()
+        elif 'step'.startswith(cmd):
+            if not um:
+                _error('no UM loaded')
+                continue
+            um.step()
         elif 'quit'.startswith(cmd):
             break
         else:
-            print(f'error: unknown command "{cmd}", try "help"',
-                  file=sys.stderr)
+            _error('unknown command "%s", try "help"', cmd)
+
+
+def _error(fmt: str, *args: ty.Any) -> None:
+    print('error: ' + (fmt % args), file=sys.stderr)
 
 
 if __name__ == '__main__':
