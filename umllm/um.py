@@ -36,10 +36,10 @@ class UM:
     SYM_B: ty.Final[str] = '_'
 
     #: Left-movement indicator.
-    SYM_L: ty.Final[str] = '<'
+    SYM_L: ty.Final[str] = 'L'
 
     #: Right-movement indicator.
-    SYM_R: ty.Final[str] = '>'
+    SYM_R: ty.Final[str] = 'R'
 
     #: Ignored.
     SYM_X: ty.Final[str] = '.'
@@ -114,14 +114,14 @@ class UM:
         #: Symbol to the left of the head.
         left_symbol: Tape
 
-        #: The direction to move the head next.
-        movement: Tape
-
         #: The state to transition to before moving the head.
         next_state: Tape
 
         #: The symbol to write before moving the head.
         next_symbol: Tape
+
+        #: The direction to move the head next.
+        next_move: Tape
 
         #: Substitution source (what to match in work).
         subst1: Tape
@@ -142,9 +142,9 @@ class UM:
                 state=value['state'],
                 symbol=value['symbol'],
                 left_symbol=value['left_symbol'],
-                movement=value['movement'],
                 next_state=value['next_state'],
                 next_symbol=value['next_symbol'],
+                next_move=value['next_move'],
                 subst1=value['subst1'],
                 subst2=value['subst2'],
                 steps=value['steps'])
@@ -158,9 +158,9 @@ class UM:
                 'state': self.state,
                 'symbol': self.symbol,
                 'left_symbol': self.left_symbol,
-                'movement': self.movement,
                 'next_state': self.next_state,
                 'next_symbol': self.next_symbol,
+                'next_move': self.next_move,
                 'subst1': self.subst1,
                 'subst2': self.subst2,
                 'steps': self.steps}
@@ -176,9 +176,9 @@ class UM:
             state: Tape | None = None,
             symbol: Tape | None = None,
             left_symbol: Tape | None = None,
-            movement: Tape | None = None,
             next_state: Tape | None = None,
             next_symbol: Tape | None = None,
+            next_move: Tape | None = None,
             subst1: Tape | None = None,
             subst2: Tape | None = None,
             steps: int | None = None,
@@ -190,9 +190,9 @@ class UM:
             state=self._check_and_pad(state or self.SYM_B),
             symbol=self._check_and_pad(symbol or self.SYM_B),
             left_symbol=self._check_and_pad(left_symbol or self.SYM_B),
-            movement=self._check_and_pad(movement or self.SYM_B),
             next_state=self._check_and_pad(next_state or self.SYM_B),
             next_symbol=self._check_and_pad(next_symbol or self.SYM_B),
+            next_move=self._check_and_pad(next_move or self.SYM_B),
             subst1=self._check_and_pad(subst1 or self.SYM_B),
             subst2=self._check_and_pad(subst2 or self.SYM_B),
             steps=abs(steps or 0))]
@@ -267,14 +267,6 @@ class UM:
         self.frame.left_symbol = self._check_and_pad(s)
 
     @property
-    def movement(self) -> Tape:
-        return self.frame.movement
-
-    @movement.setter
-    def movement(self, s: Tape) -> None:
-        self.frame.movement = self._check_and_pad(s)
-
-    @property
     def next_state(self) -> Tape:
         return self.frame.next_state
 
@@ -289,6 +281,14 @@ class UM:
     @next_symbol.setter
     def next_symbol(self, s: Tape) -> None:
         self.frame.next_symbol = self._check_and_pad(s)
+
+    @property
+    def next_move(self) -> Tape:
+        return self.frame.next_move
+
+    @next_move.setter
+    def next_move(self, s: Tape) -> None:
+        self.frame.next_move = self._check_and_pad(s)
 
     @property
     def subst1(self) -> Tape:
@@ -396,6 +396,29 @@ class UM:
     def _reLR(self) -> str:
         return '[' + self.SYM_L + self.SYM_R + ']'
 
+    def _tape2html(self, tape: Tape) -> str:
+        def it(input: str) -> ty.Iterator[str]:
+            import html
+            while input:
+                c = input[0]
+                if c == self.SYM_Q or c == self.SYM_S:
+                    m = re.match(f'({self._re01s})', input[1:])
+                    if m:
+                        k = 'Q' if c == self.SYM_Q else 'S'
+                        s = html.escape(m.group(1))
+                        yield f'<span class="{k}">{html.escape(c)}'
+                        yield f'<sub>{s}</sub></span>'
+                        input = input[len(s):]
+                        continue
+                elif c == self.SYM_B:
+                    yield '<span class="B">⋅</span>'
+                elif c == self.SYM_L:
+                    yield f'<span class="L">{html.escape(c)}</span>'
+                elif c == self.SYM_R:
+                    yield f'<span class="R">{html.escape(c)}</span>'
+                input = input[1:]
+        return ''.join(it(tape))
+
     def _parse_machine(self) -> ty.Sequence[str]:
         m = re.findall(
             f'({self._reQn})'
@@ -414,9 +437,9 @@ class UM:
 
     def _parse_work(self) -> tuple[str, str, str]:
         m = re.match(
-            f'({self._reSn})'
+            f'({self._reSn}*)'
             + f'({self._reQn})'
-            + f'({self._reSn})',
+            + f'({self._reSn}*)',
             self.work)
         if m is None:
             raise self.Error(f'bad work: {self.work}')
@@ -475,7 +498,16 @@ class UM:
         return self._push_frame(f)
 
     def step2(self) -> ty.Self:
-        """Load `next_state`, `next_symbol`, and `movement`."""
+        """Load `left_symbol`."""
+        m = re.search(rf'({self._reSn}){self._reQn}', self.work)
+        f = self._next_frame()
+        f.left_symbol = self._check_and_pad(
+            m.group(1) if m is not None else self.SYM_B)
+        _logger.info('[step 2] left symbol: %s', f.left_symbol)
+        return self._push_frame(f)
+
+    def step3(self) -> ty.Self:
+        """Load `next_state`, `next_symbol`, and `next_move`."""
         Qs = self._unpad(self.state)
         Sw = self._unpad(self.symbol)
         m = re.search(
@@ -484,23 +516,14 @@ class UM:
         if m is None:
             raise self.Error(f'bad machine: {self.machine}')
         Qy, Sz, m = m.groups()  # type: ignore
-        _logger.info('[step 2] (%s, %s) ↦ (%s, %s, %s)', Qs, Sw, Qy, Sz, m)
+        _logger.info('[step 3] (%s, %s) ↦ (%s, %s, %s)', Qs, Sw, Qy, Sz, m)
         f = self._next_frame()
         f.next_state = self._check_and_pad(Qy)
         f.next_symbol = self._check_and_pad(Sz)
-        f.movement = self._check_and_pad(m)
-        _logger.info('[step 2] next state: %s', f.next_state)
-        _logger.info('[step 2] next symbol: %s', f.next_symbol)
-        _logger.info('[step 2] movement: %s', f.movement)
-        return self._push_frame(f)
-
-    def step3(self) -> ty.Self:
-        """Load `left_symbol`."""
-        m = re.search(rf'({self._reSn}){self._reQn}', self.work)
-        f = self._next_frame()
-        f.left_symbol = self._check_and_pad(
-            m.group(1) if m is not None else self.SYM_B)
-        _logger.info('[step 3] left symbol: %s', f.left_symbol)
+        f.next_move = self._check_and_pad(m)
+        _logger.info('[step 3] next state: %s', f.next_state)
+        _logger.info('[step 3] next symbol: %s', f.next_symbol)
+        _logger.info('[step 3] next move: %s', f.next_move)
         return self._push_frame(f)
 
     def step4(self) -> ty.Self:
@@ -508,14 +531,14 @@ class UM:
         Qs = self._unpad(self.state)
         Sw = self._unpad(self.symbol)
         Su = self._unpad(self.left_symbol)
-        mov = self._unpad(self.movement)
+        mov = self._unpad(self.next_move)
         f = self._next_frame()
         if mov == self.SYM_L:
             f.subst1 = self._check_and_pad(Su + Qs + Sw)
         elif mov == self.SYM_R:
             f.subst1 = self._check_and_pad(Qs + Sw)
         else:
-            raise self.Error(f'bad movement: {mov}')
+            raise self.Error(f'bad next_move: {mov}')
         _logger.info('[step 4] subst1: %s', f.subst1)
         return self._push_frame(f)
 
@@ -524,14 +547,14 @@ class UM:
         Qy = self._unpad(self.next_state)
         Sz = self._unpad(self.next_symbol)
         Su = self._unpad(self.left_symbol)
-        mov = self._unpad(self.movement)
+        mov = self._unpad(self.next_move)
         f = self._next_frame()
         if mov == self.SYM_L:
             f.subst2 = self._check_and_pad(Qy + Su + Sz)
         elif mov == self.SYM_R:
             f.subst2 = self._check_and_pad(Sz + Qy)
         else:
-            raise self.Error(f'bad movement: {mov}')
+            raise self.Error(f'bad next_move: {mov}')
         _logger.info('[step 5] subst2: %s', f.subst2)
         return self._push_frame(f)
 

@@ -50,18 +50,18 @@ const UM = (() => {
             $("#filename").text("UMLLM")
             $("#prev, #next, #cycle, #reset").prop("disabled", true);
         }
-        $("#machine").text(um.machine || "");
-        $("#work").text(um.work || "");
-        $("#halt").text(um.halt || "");
-        $("#state").text(um.state || "");
-        $("#symbol").text(um.symbol || "");
-        $("#movement").text(um.movement || "");
-        $("#left_symbol").text(um.left_symbol || "");
-        $("#next_state").text(um.next_state || "");
-        $("#next_symbol").text(um.next_symbol || "");
-        $("#subst1").text(um.subst1 || "");
-        $("#subst2").text(um.subst2 || "");
-        $("#steps").text(um.steps || "");
+        $("#machine").html(um.formatted_machine || "");
+        $("#halt").html(um.halt || "");
+        $("#work").html(um.formatted_work || "");
+        $("#state").html(um.state || "");
+        $("#symbol").html(um.symbol || "");
+        $("#left_symbol").html(um.left_symbol || "");
+        $("#next_state").html(um.next_state || "");
+        $("#next_symbol").html(um.next_symbol || "");
+        $("#next_move").html(um.next_move || "");
+        $("#subst1").html(um.subst1 || "");
+        $("#subst2").html(um.subst2 || "");
+        $("#steps").html(um.steps || "");
         if ("prev_step" in um && um.prev_step) {
             $("#prev, #reset").prop("disabled", false);
             $("#prev").text("Prev (" + um.prev_step + ")");

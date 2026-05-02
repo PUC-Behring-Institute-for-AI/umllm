@@ -17,8 +17,8 @@ class Test(unittest.TestCase):
         self.assertEqual(UM.check_symbol('₀'), UM.SYM_0)
         self.assertEqual(UM.check_symbol('₁'), UM.SYM_1)
         self.assertEqual(UM.check_symbol('_'), UM.SYM_B)
-        self.assertEqual(UM.check_symbol('<'), UM.SYM_L)
-        self.assertEqual(UM.check_symbol('>'), UM.SYM_R)
+        self.assertEqual(UM.check_symbol('L'), UM.SYM_L)
+        self.assertEqual(UM.check_symbol('R'), UM.SYM_R)
         self.assertEqual(UM.check_symbol('.'), UM.SYM_X)
         self.assertRaises(ValueError, UM.check_symbol, '#')
         self.assertRaises(ValueError, UM.check_symbol, 0)
@@ -30,20 +30,20 @@ class Test(unittest.TestCase):
         self.assertEqual(UM.check_tape('|Q₀.₁|'), 'Q01')
         self.assertEqual(
             UM.check_tape(
-                'Q0S0Q0S0> Q0S1Q0S1>  Q0_Q₁_<.Q1S0Q10S1> Q1S1Q1S0<.Q1_Q10S1>'),
-            'Q0S0Q0S0>Q0S1Q0S1>Q0_Q1_<Q1S0Q10S1>Q1S1Q1S0<Q1_Q10S1>')
+                'Q0S0Q0S0R Q0S1Q0S1R  Q0_Q₁_L.Q1S0Q10S1R Q1S1Q1S0L.Q1_Q10S1R'),
+            'Q0S0Q0S0RQ0S1Q0S1RQ0_Q1_LQ1S0Q10S1RQ1S1Q1S0LQ1_Q10S1R')
 
     def test__init__(self) -> None:
-        um = UM('Q0S0Q0S0>', 'Q0', 'Q0S0')
-        self.assertEqual(um.machine, '_Q0S0Q0S0>_')
+        um = UM('Q0S0Q0S0R', 'Q0', 'Q0S0')
+        self.assertEqual(um.machine, '_Q0S0Q0S0R_')
         self.assertEqual(um.halt, '_Q0_')
         self.assertEqual(um.work, '_Q0S0_')
         self.assertEqual(um.state, '_')
         self.assertEqual(um.symbol, '_')
         self.assertEqual(um.left_symbol, '_')
-        self.assertEqual(um.movement, '_')
         self.assertEqual(um.next_state, '_')
         self.assertEqual(um.next_symbol, '_')
+        self.assertEqual(um.next_move, '_')
         self.assertEqual(um.subst1, '_')
         self.assertEqual(um.subst2, '_')
         self.assertEqual(um.steps, 0)

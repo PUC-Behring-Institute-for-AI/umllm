@@ -92,12 +92,40 @@ def _save_and_dump(um: UM) -> flask.Response:
 def _save(um: UM) -> None:
     t = um.to_dict()
     for k, v in t['_history'][-1].items():
-        t[k] = v
+        if k == 'steps':
+            t[k] = v
+        else:
+            t[k] = um._tape2html(v)
+    t['formatted_machine'] = _format_machine(um)
+    t['formatted_work'] = _format_work(um)
     t['prev_step'] = um.prev_step
     t['next_step'] = um.next_step
     t['cycles'] = um.cycles
     t['halted'] = um.halted()
     flask.session['um'] = t
+
+
+def _format_machine(um: UM) -> str:
+    def it() -> ty.Iterator[str]:
+        yield '<table><tbody>'
+        f = um._tape2html
+        for q0, s0, q1, s1, d in um._parse_machine():  # type: ignore
+            yield '<tr>'
+            yield f'<td>({f(q0)},&nbsp;{f(s0)})</td>'
+            yield '<td>↦</td>'
+            yield f'<td>({f(q1)},&nbsp;{f(s1)},&nbsp;{f(d)})</td>'
+            yield '</tr>'
+        yield '</tbody></table>'
+    return '\n'.join(it())
+
+
+def _format_work(um: UM) -> str:
+    f = um._tape2html
+    try:
+        s, q, t = um._parse_work()
+        return f'{f(s)}<strong>{f(q)}</strong>{f(t)}'
+    except um.Error:
+        return f(um.work)
 
 
 def _dump() -> flask.Response:
