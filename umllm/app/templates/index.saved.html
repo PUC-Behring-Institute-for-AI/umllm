@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <title>UMLLM</title>
+  </head>
+  <body>
+    <div id="file">
+      <form method="POST" action="" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Load">
+      </form>
+    </div>
+    <h1>UMLLM: {{ data.filename }}</h1>
+    <div id="controls">
+      <button id="prev" disabled>Prev</button>
+      <button id="next" disabled>Next</button>
+      <button id="cycle" disabled>Cycle</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div id="description">
+      <table>
+        <tbody>
+          <tr><td>machine:</td><td id="machine"></td></tr>
+          <tr><td>work:</td><td id="work"></td></tr>
+          <tr><td>halt:</td><td id="halt"></td></tr>
+          <tr><td>state:</td><td id="state"></td></tr>
+          <tr><td>symbol:</td><td id="symbol"></td></tr>
+          <tr><td>movement:</td><td id="movement"></td></tr>
+          <tr><td>left_symbol:</td><td id="left_symbol"></td></tr>
+          <tr><td>next_state:</td><td id="next_state"></td></tr>
+          <tr><td>next_symbol:</td><td id="next_symbol"></td></tr>
+          <tr><td>subst1:</td><td id="subst1"></td></tr>
+          <tr><td>subst2:</td><td id="subst2"></td></tr>
+          <tr><td>steps:</td><td id="steps"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      const UM = (() => {
+          let data = {{ data | tojson }};
+
+          function init() {
+              $("#reset").on("click", onReset);
+              toggleControls(false);
+              refresh();
+          }
+
+          function onReset() {
+              $.postJSON(
+                  "/api/reset",
+                  { },
+                  (response) => {
+                      data = response.data;
+                      refresh();
+                  },
+                  (xhr) => console.error("Error:", xhr.responseText)
+              );
+          }
+
+          function toggleControls(enabled) {
+              $("#prev, #next, #cycle").prop("disabled", !enabled);
+          }
+
+          function refresh() {
+              $("#machine").text(data.machine || "");
+              $("#work").text(data.work || "");
+              $("#halt").text(data.halt || "");
+              $("#state").text(data.state || "");
+              $("#symbol").text(data.symbol || "");
+              $("#movement").text(data.movement || "");
+              $("#left_symbol").text(data.left_symbol || "");
+              $("#next_state").text(data.next_state || "");
+              $("#next_symbol").text(data.next_symbol || "");
+              $("#subst1").text(data.subst1 || "");
+              $("#subst2").text(data.subst2 || "");
+              $("#steps").text(data.steps || "");
+              if (data.filename) {
+                  toggleControls(true);
+              }
+          }
+
+          // AJAX helper
+          $.postJSON = function (url, data, success, error) {
+              $.ajax({
+                  url,
+                  method: "POST",
+                  contentType: "application/json",
+                  data: JSON.stringify(data),
+                  success,
+                  error: error || ((xhr) =>
+                      console.error("Error:", xhr.responseText)),
+              });
+          };
+          return { init };
+      })();
+      $(document).ready(UM.init);
+    </script>
+  </body>
+</html>

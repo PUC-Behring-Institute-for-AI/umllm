@@ -47,7 +47,8 @@ class Test(unittest.TestCase):
         self.assertEqual(um.subst1, '_')
         self.assertEqual(um.subst2, '_')
         self.assertEqual(um.steps, 0)
-        self.assertEqual(um.stepno, 0)
+        self.assertIsNone(um.prev_step)
+        self.assertIsNone(um.next_step)
         self.assertEqual(um.cycles, 0)
 
 

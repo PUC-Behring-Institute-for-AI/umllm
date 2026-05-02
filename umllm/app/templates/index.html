@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <title>UMLLM</title>
+  </head>
+  <body>
+    <div id="load">
+      <form method="POST" action="" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Load">
+      </form>
+      <button id="clear">Clear</button>
+    </div>
+    <h1 id="filename">UMLLM</h1>
+    <div id="controls">
+      <button id="prev" disabled>Prev</button>
+      <button id="next" disabled>Next</button>
+      <button id="cycle" disabled>Cycle</button>
+      <button id="reset" disabled>Reset</button>
+    </div>
+    <div id="description">
+      <table>
+        <tbody>
+          <tr><td>machine:</td><td id="machine"></td></tr>
+          <tr><td>work:</td><td id="work"></td></tr>
+          <tr><td>halt:</td><td id="halt"></td></tr>
+          <tr><td>state:</td><td id="state"></td></tr>
+          <tr><td>symbol:</td><td id="symbol"></td></tr>
+          <tr><td>movement:</td><td id="movement"></td></tr>
+          <tr><td>left_symbol:</td><td id="left_symbol"></td></tr>
+          <tr><td>next_state:</td><td id="next_state"></td></tr>
+          <tr><td>next_symbol:</td><td id="next_symbol"></td></tr>
+          <tr><td>subst1:</td><td id="subst1"></td></tr>
+          <tr><td>subst2:</td><td id="subst2"></td></tr>
+          <tr><td>steps:</td><td id="steps"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      let filename = {{filename | tojson}};
+      let um = {{um | tojson}};
+    </script>
+    <script src="{{url_for('static', filename='script.js')}}"></script>
+  </body>
+</html>

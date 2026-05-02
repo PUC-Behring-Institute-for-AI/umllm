@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+import json
 import logging
 import pathlib
 import re
@@ -90,47 +92,87 @@ class UM:
     class Error(Exception):
         """UM error."""
 
-    #: Transition table of the simulated machine.
-    _machine: Tape
+    @dataclasses.dataclass
+    class Frame:
+        """A UM frame (configuration)."""
 
-    #: Halting state of the simulated machine.
-    _halt: Tape
+        #: Transition table of the simulated machine.
+        machine: Tape
 
-    #: Work tape of the simulated machine.
-    _work: Tape
+        #: Halting state of the simulated machine.
+        halt: Tape
 
-    #: Current state of the simulated machine.
-    _state: Tape
+        #: Work tape of the simulated machine.
+        work: Tape
 
-    #: Current symbol of the simulated machine (being read by head).
-    _symbol: Tape
+        #: Current state of the simulated machine.
+        state: Tape
 
-    #: Symbol to the left of the head.
-    _left_symbol: Tape
+        #: Current symbol of the simulated machine (being read by head).
+        symbol: Tape
 
-    #: The direction to move the head next.
-    _movement: Tape
+        #: Symbol to the left of the head.
+        left_symbol: Tape
 
-    #: The state to transition to before moving the head.
-    _next_state: Tape
+        #: The direction to move the head next.
+        movement: Tape
 
-    #: The symbol to write before moving the head.
-    _next_symbol: Tape
+        #: The state to transition to before moving the head.
+        next_state: Tape
 
-    #: Substitution source (what to match in work).
-    _subst1: Tape
+        #: The symbol to write before moving the head.
+        next_symbol: Tape
 
-    #: Substitution target (what to replace `subst1` by in work).
-    _subst2: Tape
+        #: Substitution source (what to match in work).
+        subst1: Tape
 
-    #: Total number of steps executed.
-    _steps: int
+        #: Substitution target (what to replace `subst1` by in work).
+        subst2: Tape
+
+        #: Total number of steps executed.
+        steps: int
+
+        @classmethod
+        def of_dict(cls, value: dict[str, ty.Any]) -> ty.Self:
+            """Converts dictionary to frame."""
+            return cls(
+                machine=value['machine'],
+                halt=value['halt'],
+                work=value['work'],
+                state=value['state'],
+                symbol=value['symbol'],
+                left_symbol=value['left_symbol'],
+                movement=value['movement'],
+                next_state=value['next_state'],
+                next_symbol=value['next_symbol'],
+                subst1=value['subst1'],
+                subst2=value['subst2'],
+                steps=value['steps'])
+
+        def to_dict(self) -> dict[str, ty.Any]:
+            """Converts frame to dictionary."""
+            return {
+                'machine': self.machine,
+                'halt': self.halt,
+                'work': self.work,
+                'state': self.state,
+                'symbol': self.symbol,
+                'left_symbol': self.left_symbol,
+                'movement': self.movement,
+                'next_state': self.next_state,
+                'next_symbol': self.next_symbol,
+                'subst1': self.subst1,
+                'subst2': self.subst2,
+                'steps': self.steps}
+
+    #: A stack of frames.
+    _history: list[Frame]
 
     def __init__(
             self,
-            machine: Tape,
-            halt: Tape,
-            work: Tape,
+            machine: Tape | None = None,
+            halt: Tape | None = None,
+            work: Tape | None = None,
             state: Tape | None = None,
             symbol: Tape | None = None,
             left_symbol: Tape | None = None,
@@ -141,24 +183,22 @@ class UM:
             subst2: Tape | None = None,
             steps: int | None = None,
     ) -> None:
-        self._machine = self._check_and_pad(machine)
-        self._halt = self._check_and_pad(halt)
-        self._work = self._check_and_pad(work)
-        self._state = self._check_and_pad(state or self.SYM_B)
-        self._symbol = self._check_and_pad(symbol or self.SYM_B)
-        self._left_symbol = self._check_and_pad(left_symbol or self.SYM_B)
-        self._movement = self._check_and_pad(movement or self.SYM_B)
-        self._next_state = self._check_and_pad(next_state or self.SYM_B)
-        self._next_symbol = self._check_and_pad(next_symbol or self.SYM_B)
-        self._subst1 = self._check_and_pad(subst1 or self.SYM_B)
-        self._subst2 = self._check_and_pad(subst2 or self.SYM_B)
-        self._steps = abs(steps or 0)
-        _logger.info('[init] machine: %s', self.machine)
-        _logger.info('[init] halt: %s', self.halt)
-        _logger.info('[init] work: %s', self.work)
+        self._history = [self.Frame(
+            machine=self._check_and_pad(machine or self.SYM_B),
+            halt=self._check_and_pad(halt or self.SYM_B),
+            work=self._check_and_pad(work or self.SYM_B),
+            state=self._check_and_pad(state or self.SYM_B),
+            symbol=self._check_and_pad(symbol or self.SYM_B),
+            left_symbol=self._check_and_pad(left_symbol or self.SYM_B),
+            movement=self._check_and_pad(movement or self.SYM_B),
+            next_state=self._check_and_pad(next_state or self.SYM_B),
+            next_symbol=self._check_and_pad(next_symbol or self.SYM_B),
+            subst1=self._check_and_pad(subst1 or self.SYM_B),
+            subst2=self._check_and_pad(subst2 or self.SYM_B),
+            steps=abs(steps or 0))]
 
     def __str__(self) -> str:
-        t = self.to_dict()
+        t = self.frame.to_dict()
         tab = max(*map(len, t.keys()))
 
         def it() -> ty.Iterator[str]:
@@ -175,128 +215,139 @@ class UM:
         return '\n'.join(it())
 
     @property
+    def frame(self) -> Frame:
+        return self._history[-1]
+
+    @property
     def machine(self) -> Tape:
-        return self._machine
+        return self.frame.machine
 
     @machine.setter
     def machine(self, s: Tape) -> None:
-        self._machine = self._check_and_pad(s)
+        self.frame.machine = self._check_and_pad(s)
 
     @property
     def halt(self) -> Tape:
-        return self._halt
+        return self.frame.halt
 
     @halt.setter
     def halt(self, s: Tape) -> None:
-        self._halt = self._check_and_pad(s)
+        self.frame.halt = self._check_and_pad(s)
 
     @property
     def work(self) -> Tape:
-        return self._work
+        return self.frame.work
 
     @work.setter
     def work(self, s: Tape) -> None:
-        self._work = self._check_and_pad(s)
+        self.frame.work = self._check_and_pad(s)
 
     @property
     def state(self) -> Tape:
-        return self._state
+        return self.frame.state
 
     @state.setter
     def state(self, s: Tape) -> None:
-        self._state = self._check_and_pad(s)
+        self.frame.state = self._check_and_pad(s)
 
     @property
     def symbol(self) -> Tape:
-        return self._symbol
+        return self.frame.symbol
 
     @symbol.setter
     def symbol(self, s: Tape) -> None:
-        self._symbol = self._check_and_pad(s)
+        self.frame.symbol = self._check_and_pad(s)
 
     @property
     def left_symbol(self) -> Tape:
-        return self._left_symbol
+        return self.frame.left_symbol
 
     @left_symbol.setter
     def left_symbol(self, s: Tape) -> None:
-        self._left_symbol = self._check_and_pad(s)
+        self.frame.left_symbol = self._check_and_pad(s)
 
     @property
     def movement(self) -> Tape:
-        return self._movement
+        return self.frame.movement
 
     @movement.setter
     def movement(self, s: Tape) -> None:
-        self._movement = self._check_and_pad(s)
+        self.frame.movement = self._check_and_pad(s)
 
     @property
     def next_state(self) -> Tape:
-        return self._next_state
+        return self.frame.next_state
 
     @next_state.setter
     def next_state(self, s: Tape) -> None:
-        self._next_state = self._check_and_pad(s)
+        self.frame.next_state = self._check_and_pad(s)
 
     @property
     def next_symbol(self) -> Tape:
-        return self._next_symbol
+        return self.frame.next_symbol
 
     @next_symbol.setter
     def next_symbol(self, s: Tape) -> None:
-        self._next_symbol = self._check_and_pad(s)
+        self.frame.next_symbol = self._check_and_pad(s)
 
     @property
     def subst1(self) -> Tape:
-        return self._subst1
+        return self.frame.subst1
 
     @subst1.setter
     def subst1(self, s: Tape) -> None:
-        self._subst1 = self._check_and_pad(s)
+        self.frame.subst1 = self._check_and_pad(s)
 
     @property
     def subst2(self) -> Tape:
-        return self._subst2
+        return self.frame.subst2
 
     @subst2.setter
     def subst2(self, s: Tape) -> None:
-        self._subst2 = self._check_and_pad(s)
+        self.frame.subst2 = self._check_and_pad(s)
 
     @property
     def steps(self) -> int:
-        """Total number of steps executed."""
-        return self._steps
+        return self.frame.steps
+
+    @steps.setter
+    def steps(self, n: int) -> None:
+        self.frame.steps = n
 
     @property
-    def stepno(self) -> int:
-        """Next step to be executed (0-5)."""
-        return self.steps % 6
+    def prev_step(self) -> int | None:
+        """The last step executed (1-6 or `None`)."""
+        return ((self.steps - 1) % 6) + 1 if self.steps else None
+
+    @property
+    def next_step(self) -> int | None:
+        """The next step to be executed (1-6 or `None`)."""
+        return (self.steps % 6) + 1 if not self.halted() else None
 
     @property
     def cycles(self) -> int:
-        """Total number of cycles executed."""
+        """The total number of cycles executed."""
         return self.steps // 6
 
     @classmethod
     def of_dict(cls, value: dict[str, ty.Any]) -> ty.Self:
         """Converts dictionary to UM."""
-        return cls(**value)
+        um = cls()
+        um._history = [cls.Frame.of_dict(t) for t in value['_history']]
+        return um
 
     def to_dict(self) -> dict[str, ty.Any]:
         """Converts UM to dictionary."""
-        return {
-            'machine': self.machine,
-            'halt': self.halt,
-            'work': self.work,
-            'state': self.state,
-            'symbol': self.symbol,
-            'left_symbol': self.left_symbol,
-            'movement': self.movement,
-            'next_state': self.next_state,
-            'next_symbol': self.next_symbol,
-            'subst1': self.subst1,
-            'subst2': self.subst2,
-            'steps': self.steps}
+        return {'_history': [frame.to_dict() for frame in self._history]}
+
+    @classmethod
+    def of_json(cls, s: str, **kwargs: ty.Any) -> ty.Self:
+        """Converts JSON string to UM."""
+        return cls.of_dict(json.loads(s))
+
+    def to_json(self, **kwargs: ty.Any) -> str:
+        """Converts UM to JSON string."""
+        return json.dumps(self.to_dict(), **kwargs)
 
     @classmethod
     def load(cls, s: str) -> ty.Self:
@@ -304,7 +355,7 @@ class UM:
         machine: str = ''
         halt: str = ''
         work: str = ''
-        it = filter(lambda l: not l.startswith('#'),
+        it = filter(lambda x: not x.startswith('#'),
                     map(str.strip, s.splitlines()))
         while True:
             line = next(it, '')
@@ -371,52 +422,59 @@ class UM:
             raise self.Error(f'bad work: {self.work}')
         return m.groups()       # type: ignore
 
+    def reset(self) -> ty.Self:
+        """Resets UM to its initial frame."""
+        _logger.info('[reset]')
+        self._history = self._history[:1]
+        return self
+
     def run(self) -> ty.Self:
-        """Executes cycles until the halting state is reached."""
+        """Executes step cycles until the halting state is reached."""
         _logger.info('[run]')
         while not self.halted():
             self.cycle()
         return self
 
     def cycle(self) -> ty.Self:
-        """Executes one cycle."""
+        """Executes one cycle of steps."""
         _logger.info('[cycle %d]', self.cycles)
         while not self.halted():
-            self.step()
-            if self.stepno == 0:
+            self.next()
+            if self.next_step == 1:
                 break
         return self
 
-    def step(self) -> ty.Self:
-        """Executes one step."""
-        m = re.search(f'({self._reQn})', self.work)
-        if m is None:
-            raise self.Error(f'bad work: {self.work}')
-        if self.halted():
-            return self
-        else:
-            return getattr(self, f'step{self.stepno}')()
+    def prev(self) -> ty.Self:
+        """Reverts the last executed step."""
+        if self.prev_step is not None:
+            assert len(self._history) > 1, len(self._history)
+            self._history.pop()
+        return self
+
+    def next(self) -> ty.Self:
+        """Executes the next step."""
+        if self.next_step is not None:
+            return getattr(self, f'step{self.next_step}')()
+        return self
 
     def halted(self) -> bool:
         """Tests whether UM has halted."""
         m = re.search(f'({self._reQn})', self.work)
-        if m is None:
-            raise self.Error(f'bad work: {self.work}')
-        return self._unpad(self.halt) == m.group(1)
+        return m is not None and self._unpad(self.halt) == m.group(1)
 
-    def step0(self) -> ty.Self:
+    def step1(self) -> ty.Self:
         """Load `state` and `symbol`."""
         m = re.search(f'({self._reQn})({self._reSn})', self.work)
         if m is None:
             raise self.Error(f'bad work: {self.work}')
-        self.state = self._check_and_pad(m.group(1))
-        self.symbol = self._check_and_pad(m.group(2))
-        _logger.info('[step %d] state: %s', self.stepno, self.state)
-        _logger.info('[step %d] symbol: %s', self.stepno, self.symbol)
-        self._steps += 1
-        return self
+        f = self._next_frame()
+        f.state = self._check_and_pad(m.group(1))
+        f.symbol = self._check_and_pad(m.group(2))
+        _logger.info('[step 1] state: %s', f.state)
+        _logger.info('[step 1] symbol: %s', f.symbol)
+        return self._push_frame(f)
 
-    def step1(self) -> ty.Self:
+    def step2(self) -> ty.Self:
         """Load `next_state`, `next_symbol`, and `movement`."""
         Qs = self._unpad(self.state)
         Sw = self._unpad(self.symbol)
@@ -426,69 +484,69 @@ class UM:
         if m is None:
             raise self.Error(f'bad machine: {self.machine}')
         Qy, Sz, m = m.groups()  # type: ignore
-        _logger.info(
-            '[step %d] (%s, %s) ↦ (%s, %s, %s)',
-            self.stepno, Qs, Sw, Qy, Sz, m)
-        self.next_state = self._check_and_pad(Qy)
-        self.next_symbol = self._check_and_pad(Sz)
-        self.movement = self._check_and_pad(m)
-        _logger.info(
-            '[step %d] next state: %s', self.stepno, self.next_state)
-        _logger.info(
-            '[step %d] next symbol: %s', self.stepno, self.next_symbol)
-        _logger.info(
-            '[step %d] movement: %s', self.stepno, self.movement)
-        self._steps += 1
-        return self
-
-    def step2(self) -> ty.Self:
-        """Load `left_symbol`."""
-        m = re.search(rf'({self._reSn}){self._reQn}', self.work)
-        self.left_symbol = self._check_and_pad(
-            m.group(1) if m is not None else self.SYM_B)
-        _logger.info(
-            '[step %d] left symbol: %s', self.stepno, self.left_symbol)
-        self._steps += 1
-        return self
+        _logger.info('[step 2] (%s, %s) ↦ (%s, %s, %s)', Qs, Sw, Qy, Sz, m)
+        f = self._next_frame()
+        f.next_state = self._check_and_pad(Qy)
+        f.next_symbol = self._check_and_pad(Sz)
+        f.movement = self._check_and_pad(m)
+        _logger.info('[step 2] next state: %s', f.next_state)
+        _logger.info('[step 2] next symbol: %s', f.next_symbol)
+        _logger.info('[step 2] movement: %s', f.movement)
+        return self._push_frame(f)
 
     def step3(self) -> ty.Self:
+        """Load `left_symbol`."""
+        m = re.search(rf'({self._reSn}){self._reQn}', self.work)
+        f = self._next_frame()
+        f.left_symbol = self._check_and_pad(
+            m.group(1) if m is not None else self.SYM_B)
+        _logger.info('[step 3] left symbol: %s', f.left_symbol)
+        return self._push_frame(f)
+
+    def step4(self) -> ty.Self:
         """Load `subst1`."""
         Qs = self._unpad(self.state)
         Sw = self._unpad(self.symbol)
         Su = self._unpad(self.left_symbol)
         mov = self._unpad(self.movement)
+        f = self._next_frame()
         if mov == self.SYM_L:
-            self.subst1 = self._check_and_pad(Su + Qs + Sw)
+            f.subst1 = self._check_and_pad(Su + Qs + Sw)
         elif mov == self.SYM_R:
-            self.subst1 = self._check_and_pad(Qs + Sw)
+            f.subst1 = self._check_and_pad(Qs + Sw)
         else:
             raise self.Error(f'bad movement: {mov}')
-        _logger.info('[step %d] subst1: %s', self.stepno, self.subst1)
-        self._steps += 1
-        return self
+        _logger.info('[step 4] subst1: %s', f.subst1)
+        return self._push_frame(f)
 
-    def step4(self) -> ty.Self:
+    def step5(self) -> ty.Self:
         """Load `subst2`"""
         Qy = self._unpad(self.next_state)
         Sz = self._unpad(self.next_symbol)
         Su = self._unpad(self.left_symbol)
         mov = self._unpad(self.movement)
+        f = self._next_frame()
         if mov == self.SYM_L:
-            self.subst2 = self._check_and_pad(Qy + Su + Sz)
+            f.subst2 = self._check_and_pad(Qy + Su + Sz)
         elif mov == self.SYM_R:
-            self.subst2 = self._check_and_pad(Sz + Qy)
+            f.subst2 = self._check_and_pad(Sz + Qy)
         else:
             raise self.Error(f'bad movement: {mov}')
-        _logger.info('[step %d] subst2: %s', self.stepno, self.subst2)
-        self._steps += 1
-        return self
+        _logger.info('[step 5] subst2: %s', f.subst2)
+        return self._push_frame(f)
 
-    def step5(self) -> ty.Self:
+    def step6(self) -> ty.Self:
         """Replace `subst1` by `subst2` in `work`."""
         s1 = self._unpad(self.subst1)
         s2 = self._unpad(self.subst2)
-        self.work = self._check_and_pad(
-            self._unpad(self.work).replace(s1, s2, 1))
-        _logger.info('[step %d] work: %s', self.stepno, self.work)
-        self._steps += 1
+        f = self._next_frame()
+        f.work = self._check_and_pad(self._unpad(self.work).replace(s1, s2, 1))
+        _logger.info('[step 6] work: %s', f.work)
+        return self._push_frame(f)
+
+    def _next_frame(self) -> Frame:
+        return dataclasses.replace(self.frame, steps=self.frame.steps + 1)
+
+    def _push_frame(self, frame: Frame) -> ty.Self:
+        self._history.append(frame)
         return self
