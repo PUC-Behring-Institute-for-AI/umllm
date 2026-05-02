@@ -1,2 +1,17 @@
+:root {
+    --alert: blue;
+    --step1: black;
+    --step2: black;
+    --step3: black;
+    --step4: black;
+    --step5: black;
+    --step6: black;
+}
 main, footer {max-width: 40em; margin: auto;}
-td { vertical-align: top; }
+td {padding: 0 .25em; vertical-align: top;}
+#state, #symbol {color: var(--step1);}
+#left_symbol {color: var(--step2);}
+#next_state, #next_symbol, #next_move {color: var(--step3);}
+#subst1 {color: var(--step4);}
+#subst2 {color: var(--step5);}
+#work {color: var(--step6);}

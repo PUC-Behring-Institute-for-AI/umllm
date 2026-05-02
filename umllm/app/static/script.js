@@ -62,9 +62,16 @@ const UM = (() => {
         $("#subst1").html(um.subst1 || "");
         $("#subst2").html(um.subst2 || "");
         $("#steps").html(um.steps || "");
+        $("html").css("--step1", "black");
+        $("html").css("--step2", "black");
+        $("html").css("--step3", "black");
+        $("html").css("--step4", "black");
+        $("html").css("--step5", "black");
+        $("html").css("--step6", "black");
         if ("prev_step" in um && um.prev_step) {
             $("#prev, #reset").prop("disabled", false);
             $("#prev").text("Prev (" + um.prev_step + ")");
+            $("html").css("--step" + um.prev_step, "var(--alert)");
         } else {
             $("#prev, #reset").prop("disabled", true);
             $("#prev").text("Prev");
