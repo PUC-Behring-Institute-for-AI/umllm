@@ -509,8 +509,6 @@ class UM:
 
     def step3(self) -> ty.Self:
         """Load `next_state`, `next_symbol`, and `next_move`."""
-        # Qs = self.state
-        # Sw = self.symbol
         m = re.search(
             f'{self.state}{self.symbol}'
             f'({self._reQn})({self._reSn})({self._reLR})',

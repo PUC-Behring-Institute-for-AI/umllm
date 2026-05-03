@@ -47,6 +47,9 @@ const UM = (() => {
         }
         if (filename) {
             $("#filename").text(filename);
+            if ("halted" in um && um.halted) {
+                $("#filename").text(filename + " (halted)");
+            }
         } else {
             $("#filename").text("(no file)");
             $("#prev, #next, #cycle, #reset").prop("disabled", true);

@@ -71,7 +71,8 @@ def api_clear() -> flask.Response:
 def api_prev() -> flask.Response:
     try:
         return _save_and_dump(_load().prev())
-    except UM.Error:
+    except UM.Error as err:
+        _logger.error(err)
         return _dump()
 
 
@@ -79,7 +80,8 @@ def api_prev() -> flask.Response:
 def api_next() -> flask.Response:
     try:
         return _save_and_dump(_load().next())
-    except UM.Error:
+    except UM.Error as err:
+        _logger.error(err)
         return _dump()
 
 
@@ -87,7 +89,8 @@ def api_next() -> flask.Response:
 def api_cycle() -> flask.Response:
     try:
         return _save_and_dump(_load().cycle())
-    except UM.Error:
+    except UM.Error as err:
+        _logger.error(err)
         return _dump()
 
 
@@ -95,7 +98,8 @@ def api_cycle() -> flask.Response:
 def api_reset() -> flask.Response:
     try:
         return _save_and_dump(_load().reset())
-    except UM.Error:
+    except UM.Error as err:
+        _logger.error(err)
         return _dump()
 
 

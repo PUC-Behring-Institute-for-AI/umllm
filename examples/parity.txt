@@ -1,0 +1,11 @@
+# tests whether the input is even
+Q0S0  Q0S0R
+Q0S1  Q0S1R
+Q0.   Q1.L
+Q1S0  Q10S0R
+
+# halt
+Q10
+
+# input
+Q0S1S0S1S0
