@@ -182,6 +182,7 @@ class UM:
             subst1: Tape | None = None,
             subst2: Tape | None = None,
             steps: int | None = None,
+            _empty: bool | None = None,
     ) -> None:
         self._history = [self.Frame(
             machine=self._check_and_pad(machine or self.SYM_B),
@@ -196,6 +197,10 @@ class UM:
             subst1=self._check_and_pad(subst1 or self.SYM_B),
             subst2=self._check_and_pad(subst2 or self.SYM_B),
             steps=abs(steps or 0))]
+        if not _empty:
+            _logger.info('[init] machine: %s', self.machine)
+            _logger.info('[init] halt: %s', self.halt)
+            _logger.info('[init] work: %s', self.work)
 
     def __str__(self) -> str:
         t = self.frame.to_dict()
@@ -332,7 +337,7 @@ class UM:
     @classmethod
     def of_dict(cls, value: dict[str, ty.Any]) -> ty.Self:
         """Converts dictionary to UM."""
-        um = cls()
+        um = cls(_empty=True)
         um._history = [cls.Frame.of_dict(t) for t in value['_history']]
         return um
 
@@ -453,14 +458,16 @@ class UM:
 
     def run(self) -> ty.Self:
         """Executes step cycles until the halting state is reached."""
-        _logger.info('[run]')
+        if not self.halted():
+            _logger.info('[run]')
         while not self.halted():
             self.cycle()
         return self
 
     def cycle(self) -> ty.Self:
         """Executes one cycle of steps."""
-        _logger.info('[cycle %d]', self.cycles)
+        if not self.halted():
+            _logger.info('[cycle %d]', self.cycles)
         while not self.halted():
             self.next()
             if self.next_step == 1:
@@ -470,6 +477,7 @@ class UM:
     def prev(self) -> ty.Self:
         """Reverts the last executed step."""
         if self.prev_step is not None:
+            _logger.info('[prev]')
             assert len(self._history) > 1, len(self._history)
             self._history.pop()
         return self

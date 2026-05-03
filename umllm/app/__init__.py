@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import io
+import logging
 import os
 
 import flask
@@ -13,11 +15,18 @@ from ..um import UM
 #: The Flask application.
 app: ty.Final[flask.Flask] = flask.Flask(__name__)
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY: str | None = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     import secrets
     SECRET_KEY = secrets.token_hex()
 app.config['SECRET_KEY'] = SECRET_KEY
+
+LOG_STREAM: ty.Final[io.StringIO] = io.StringIO()
+_logger: ty.Final[logging.Logger] = logging.getLogger('umllm')
+_logger.setLevel(level=logging.INFO)
+_logger_handler = logging.StreamHandler(LOG_STREAM)
+_logger_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+_logger.addHandler(_logger_handler)
 
 
 @app.route("/")
@@ -25,17 +34,23 @@ def index() -> str:
     return flask.render_template(
         'index.html',
         filename=flask.session.get('filename'),
-        um=flask.session.get('um', {}))
+        um=flask.session.get('um', {}),
+        log=LOG_STREAM.getvalue())
 
 
 @app.route('/', methods=['POST'])
 def upload() -> flask.Response:
     file = flask.request.files['file']
+    input = flask.request.form['input']
     flask.session['filename'] = file.filename
+    flask.session['input'] = input
     try:
-        _save(UM.load(file.stream.read().decode('utf-8')))
+        um = UM.load(file.stream.read().decode('utf-8'))
+        if input:
+            um.work = input
+        _save(um)
     except ValueError as err:
-        app.logger.exception(err)
+        _logger.error(err)
     return flask.redirect(flask.url_for('index'))  # type: ignore
 
 
@@ -43,8 +58,12 @@ def upload() -> flask.Response:
 def api_clear() -> flask.Response:
     if 'filename' in flask.session:
         del flask.session['filename']
+    if 'input' in flask.session:
+        del flask.session['input']
     if 'um' in flask.session:
         del flask.session['um']
+    LOG_STREAM.seek(0)
+    LOG_STREAM.truncate(0)
     return _dump()
 
 
@@ -131,4 +150,6 @@ def _format_work(um: UM) -> str:
 def _dump() -> flask.Response:
     return flask.jsonify({
         'filename': flask.session.get('filename'),
-        'um': flask.session.get('um', {})})
+        'input': flask.session.get('input'),
+        'um': flask.session.get('um', {}),
+        'log': LOG_STREAM.getvalue()})

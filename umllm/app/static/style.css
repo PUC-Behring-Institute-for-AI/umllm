@@ -76,3 +76,9 @@ legend {
 #work {
     color: var(--step6);
 }
+#log {
+    width: 100%;
+    height: 100px;
+    resize: none;
+    overflow: auto;
+}

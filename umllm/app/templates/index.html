@@ -12,6 +12,7 @@
     <script>
       let filename = {{filename | tojson}};
       let um = {{um | tojson}};
+      let log = {{log | tojson}};
     </script>
     <script src="{{url_for('static', filename='script.js')}}"></script>
     <main>
@@ -35,7 +36,7 @@
               <tr>
                 <td colspan="2" align="center" style="padding-top:1em;">
                   <input type="submit" value="Load"/>
-                  <button id="clear">Clear</button>
+                  <button type="button" id="clear">Clear</button>
                 </td>
               </tr>
             </tbody>
@@ -112,6 +113,8 @@
       </fieldset>
       <fieldset>
         <legend>log</legend>
+        <textarea id="log" readonly>
+        </textarea>
       </fieldset>
     </main>
     <footer>

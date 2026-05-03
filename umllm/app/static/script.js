@@ -43,11 +43,12 @@ const UM = (() => {
         if (response) {
             filename = response.filename;
             um = response.um;
+            log = response.log;
         }
         if (filename) {
-            $("#filename").text(filename)
+            $("#filename").text(filename);
         } else {
-            $("#filename").text("(no file)")
+            $("#filename").text("(no file)");
             $("#prev, #next, #cycle, #reset").prop("disabled", true);
         }
         $("#machine").html(um.formatted_machine || "");
@@ -88,6 +89,8 @@ const UM = (() => {
         } else {
             $("#cycle").text("Cycle");
         }
+        $("#log").text(log);
+        $("#log").scrollTop($("#log")[0].scrollHeight);
     }
 
     // AJAX helper
