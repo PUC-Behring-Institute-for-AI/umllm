@@ -45,9 +45,9 @@ const UM = (() => {
             um = response.um;
         }
         if (filename) {
-            $("#filename").text("UMLLM: " + filename)
+            $("#filename").text(filename)
         } else {
-            $("#filename").text("UMLLM")
+            $("#filename").text("(no file)")
             $("#prev, #next, #cycle, #reset").prop("disabled", true);
         }
         $("#machine").html(um.formatted_machine || "");
@@ -82,6 +82,11 @@ const UM = (() => {
         } else {
             $("#next, #cycle").prop("disabled", true);
             $("#next").text("Next");
+        }
+        if ("cycles" in um) {
+            $("#cycle").text("Cycle (" + um.cycles + ")");
+        } else {
+            $("#cycle").text("Cycle");
         }
     }
 

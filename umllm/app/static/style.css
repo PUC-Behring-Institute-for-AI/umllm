@@ -1,5 +1,14 @@
 :root {
-    --alert: blue;
+    --font: "Adwaita Mono", monospace;
+    --fg-color: #000;
+    --bg-color: #fff;
+    --em-color: #f00;
+    --link-color1: #0000EE;
+    --link-color2: #551A8B;
+    --box-color: #000;
+    --table-color1: #FFF;
+    --table-color2: #CCC;
+    --alert: #f00;
     --step1: black;
     --step2: black;
     --step3: black;
@@ -7,11 +16,63 @@
     --step5: black;
     --step6: black;
 }
-main, footer {max-width: 40em; margin: auto;}
-td {padding: 0 .25em; vertical-align: top;}
-#state, #symbol {color: var(--step1);}
-#left_symbol {color: var(--step2);}
-#next_state, #next_symbol, #next_move {color: var(--step3);}
-#subst1 {color: var(--step4);}
-#subst2 {color: var(--step5);}
-#work {color: var(--step6);}
+html {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: var(--font);
+}
+main {
+    max-width: 40em;
+    margin: auto;
+}
+footer {
+    text-align: center;
+    font-size: 75%;
+    line-height: 1.5;
+}
+table {
+    border-collapse: separate;
+    border-spacing: .25em;
+}
+td {
+    padding: 0 .25em;
+    vertical-align: top;
+}
+button, input {
+    font-family: var(--font);
+}
+fieldset {
+    background-color: var(--bg-color);
+    border: var(--box-color) 1px solid;
+    color: var(--fg-color);
+    display: block;
+    margin: 1em;
+    padding: 1em;
+}
+legend {
+    background-color: var(--bg-color);
+    border-style: none !important;
+    padding: .3em;
+}
+#controls {
+    padding-top: 1em;
+    text-align: center;
+}
+#state, #symbol {
+    color: var(--step1);
+}
+#left_symbol {
+    color: var(--step2);
+}
+#next_state, #next_symbol, #next_move {
+    color: var(--step3);
+}
+#subst1 {
+    color: var(--step4);
+}
+#subst2 {
+    color: var(--step5);
+}
+#work {
+    color: var(--step6);
+}

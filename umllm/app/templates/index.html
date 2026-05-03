@@ -2,107 +2,122 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8"/>
+    <meta name=viewport content='width=device-width, initial-scale=1' />
     <title>UMLLM</title>
-    <link rel="stylesheet"
-          href="{{url_for('static', filename='style.css')}}" />
+    <link href="{{url_for('static', filename='style.css')}}"
+          rel="stylesheet"/>
   </head>
   <body>
-    <nav id="load">
-      <form method="POST" action="" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Load">
-      </form>
-      <button id="clear">Clear</button>
-    </nav>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      let filename = {{filename | tojson}};
+      let um = {{um | tojson}};
+    </script>
+    <script src="{{url_for('static', filename='script.js')}}"></script>
     <main>
-      <h1 id="filename"></h1>
+      <fieldset>
+        <legend>UMLLM</legend>
+        <form method="POST" action="" enctype="multipart/form-data">
+          <table style="width:100%;">
+            <colgroup>
+              <col span="1" style="width:15%;">
+              <col span="1" style="width:85%;">
+            </colgroup>
+            <tbody>
+              <tr>
+                <td align="right"><label for="file">file</label></td>
+                <td><input type="file" name="file"/></td>
+              </tr>
+              <tr>
+                <td align="right"><label for="input">input</label></td>
+                <td><input type="text" name="input"/></td>
+              </tr>
+              <tr>
+                <td colspan="2" align="center" style="padding-top:1em;">
+                  <input type="submit" value="Load"/>
+                  <button id="clear">Clear</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+      </fieldset>
       <div id="controls">
+        <button id="reset" disabled>Reset</button>
         <button id="prev" disabled>Prev</button>
         <button id="next" disabled>Next</button>
         <button id="cycle" disabled>Cycle</button>
-        <button id="reset" disabled>Reset</button>
       </div>
-      <div id="description">
-        <table>
+      <fieldset>
+        <legend id="filename"></legend>
+        <table style="width: 100%;">
+          <colgroup>
+            <col span="1" style="width:15%;">
+            <col span="1" style="width:85%;">
+          </colgroup>
           <tbody>
             <tr>
-              <td align="right">machine:</td>
+              <td align="right">machine</td>
               <td id="machine"></td>
             </tr>
             <tr>
-              <td align="right">halt:</td>
+              <td align="right">halt</td>
               <td id="halt"></td>
             </tr>
             <tr>
-              <td colspan="2"></td>
+              <td colspan="2"><br/></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step6);">
-                work:
-              </td>
+              <td align="right" style="color:var(--step6);">work</td>
               <td id="work"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step1);">
-                state:
-              </td>
+              <td align="right" style="color:var(--step1);">state</td>
               <td id="state"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step1);">
-                symbol:
-              </td>
+              <td align="right" style="color:var(--step1);">symbol</td>
               <td id="symbol"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step2);">
-                left_symbol:
-              </td>
+              <td align="right" style="color:var(--step2);">left_symbol</td>
               <td id="left_symbol"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step3);">
-                next_state:
-              </td>
+              <td align="right" style="color:var(--step3);">next_state</td>
               <td id="next_state"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step3);">
-                next_symbol:
-              </td>
+              <td align="right" style="color:var(--step3);">next_symbol</td>
               <td id="next_symbol"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step3);">
-                next_move:
-              </td>
+              <td align="right" style="color:var(--step3);">next_move</td>
               <td id="next_move"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step4);">
-                subst1:
-              </td>
+              <td align="right" style="color:var(--step4);">subst1</td>
               <td id="subst1"></td>
             </tr>
             <tr>
-              <td align="right" style="color:var(--step5);">
-                subst2:
-              </td>
+              <td align="right" style="color:var(--step5);">subst2</td>
               <td id="subst2"></td>
             </tr>
             <tr>
-              <td align="right">steps:</td>
+              <td align="right">steps</td>
               <td id="steps"></td>
             </tr>
           </tbody>
         </table>
-      </div>
-      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-      <script>
-        let filename = {{filename | tojson}};
-        let um = {{um | tojson}};
-      </script>
-      <script src="{{url_for('static', filename='script.js')}}"></script>
+      </fieldset>
+      <fieldset>
+        <legend>log</legend>
+      </fieldset>
     </main>
+    <footer>
+      Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI<br/>
+      <a href="https://github.com/PUC-Behring-Institute-for-AI/umllm">
+        github.com/PUC-Behring-Institute-for-AI/umllm</a>
+    </footer>
   </body>
 </html>
