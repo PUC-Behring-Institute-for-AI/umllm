@@ -33,7 +33,7 @@ class UM:
     SYM_1: ty.Final[str] = '1'
 
     #: The blank symbol.
-    SYM_B: ty.Final[str] = '_'
+    SYM_B: ty.Final[str] = '.'
 
     #: Left-movement indicator.
     SYM_L: ty.Final[str] = 'L'
@@ -42,18 +42,18 @@ class UM:
     SYM_R: ty.Final[str] = 'R'
 
     #: Ignored.
-    SYM_X: ty.Final[str] = '.'
+    SYM_X: ty.Final[str] = ' '
 
     _alphabet: ty.ClassVar[frozenset[Symbol]] =\
         frozenset([SYM_Q, SYM_S, SYM_0, SYM_1, SYM_B, SYM_L, SYM_R, SYM_X,])
 
     _tr: ty.ClassVar[dict[str, Symbol]] = {
+        '_': SYM_B,
         'q': SYM_Q,
         's': SYM_S,
+        '|': SYM_X,
         '₀': SYM_0,
         '₁': SYM_1,
-        ' ': SYM_X,
-        '|': SYM_X,
     }
 
     @classmethod
@@ -66,28 +66,21 @@ class UM:
         raise ValueError(f'bad symbol: {value}')
 
     @classmethod
-    def check_tape(cls, value: ty.Any) -> Tape:
+    def check_tape(cls, value: ty.Any, pad: bool = False) -> Tape:
         """Coerces value to tape."""
         if isinstance(value, str):
-            return ''.join(map(cls.check_symbol, value)).replace(cls.SYM_X, '')
+            tape = ''.join(map(cls.check_symbol, value)).replace(cls.SYM_X, '')
+            if pad:
+                if tape:
+                    left = '' if tape[0] == cls.SYM_B else cls.SYM_B
+                    right = '' if tape[-1] == cls.SYM_B else cls.SYM_B
+                    return left + tape + right
+                else:
+                    return cls.SYM_B + cls.SYM_B
+            else:
+                return tape
         else:
             raise ValueError(f'bad tape: {value}')
-
-    @classmethod
-    def _check_and_pad(cls, value: ty.Any) -> Tape:
-        return cls._pad(cls.check_tape(value))
-
-    @classmethod
-    def _pad(cls, tape: Tape) -> Tape:
-        s = tape.strip(cls.SYM_B)
-        if s == '':
-            return Tape(cls.SYM_B)
-        else:
-            return Tape(cls.SYM_B + s + cls.SYM_B)
-
-    @classmethod
-    def _unpad(cls, tape: Tape) -> Tape:
-        return Tape(tape.strip(cls.SYM_B) or cls.SYM_B)
 
     class Error(Exception):
         """UM error."""
@@ -185,17 +178,17 @@ class UM:
             _empty: bool | None = None,
     ) -> None:
         self._history = [self.Frame(
-            machine=self._check_and_pad(machine or self.SYM_B),
-            halt=self._check_and_pad(halt or self.SYM_B),
-            work=self._check_and_pad(work or self.SYM_B),
-            state=self._check_and_pad(state or self.SYM_B),
-            symbol=self._check_and_pad(symbol or self.SYM_B),
-            left_symbol=self._check_and_pad(left_symbol or self.SYM_B),
-            next_state=self._check_and_pad(next_state or self.SYM_B),
-            next_symbol=self._check_and_pad(next_symbol or self.SYM_B),
-            next_move=self._check_and_pad(next_move or self.SYM_B),
-            subst1=self._check_and_pad(subst1 or self.SYM_B),
-            subst2=self._check_and_pad(subst2 or self.SYM_B),
+            machine=self.check_tape(machine or ''),
+            halt=self.check_tape(halt or ''),
+            work=self.check_tape(work or '', pad=True),
+            state=self.check_tape(state or ''),
+            symbol=self.check_tape(symbol or ''),
+            left_symbol=self.check_tape(left_symbol or ''),
+            next_state=self.check_tape(next_state or ''),
+            next_symbol=self.check_tape(next_symbol or ''),
+            next_move=self.check_tape(next_move or ''),
+            subst1=self.check_tape(subst1 or ''),
+            subst2=self.check_tape(subst2 or ''),
             steps=abs(steps or 0))]
         if not _empty:
             _logger.info('[init] machine: %s', self.machine)
@@ -229,7 +222,7 @@ class UM:
 
     @machine.setter
     def machine(self, s: Tape) -> None:
-        self.frame.machine = self._check_and_pad(s)
+        self.frame.machine = self.check_tape(s)
 
     @property
     def halt(self) -> Tape:
@@ -237,7 +230,7 @@ class UM:
 
     @halt.setter
     def halt(self, s: Tape) -> None:
-        self.frame.halt = self._check_and_pad(s)
+        self.frame.halt = self.check_tape(s)
 
     @property
     def work(self) -> Tape:
@@ -245,7 +238,7 @@ class UM:
 
     @work.setter
     def work(self, s: Tape) -> None:
-        self.frame.work = self._check_and_pad(s)
+        self.frame.work = self.check_tape(s, pad=True)
 
     @property
     def state(self) -> Tape:
@@ -253,7 +246,7 @@ class UM:
 
     @state.setter
     def state(self, s: Tape) -> None:
-        self.frame.state = self._check_and_pad(s)
+        self.frame.state = self.check_tape(s)
 
     @property
     def symbol(self) -> Tape:
@@ -261,7 +254,7 @@ class UM:
 
     @symbol.setter
     def symbol(self, s: Tape) -> None:
-        self.frame.symbol = self._check_and_pad(s)
+        self.frame.symbol = self.check_tape(s)
 
     @property
     def left_symbol(self) -> Tape:
@@ -269,7 +262,7 @@ class UM:
 
     @left_symbol.setter
     def left_symbol(self, s: Tape) -> None:
-        self.frame.left_symbol = self._check_and_pad(s)
+        self.frame.left_symbol = self.check_tape(s)
 
     @property
     def next_state(self) -> Tape:
@@ -277,7 +270,7 @@ class UM:
 
     @next_state.setter
     def next_state(self, s: Tape) -> None:
-        self.frame.next_state = self._check_and_pad(s)
+        self.frame.next_state = self.check_tape(s)
 
     @property
     def next_symbol(self) -> Tape:
@@ -285,7 +278,7 @@ class UM:
 
     @next_symbol.setter
     def next_symbol(self, s: Tape) -> None:
-        self.frame.next_symbol = self._check_and_pad(s)
+        self.frame.next_symbol = self.check_tape(s)
 
     @property
     def next_move(self) -> Tape:
@@ -293,7 +286,7 @@ class UM:
 
     @next_move.setter
     def next_move(self, s: Tape) -> None:
-        self.frame.next_move = self._check_and_pad(s)
+        self.frame.next_move = self.check_tape(s)
 
     @property
     def subst1(self) -> Tape:
@@ -301,7 +294,7 @@ class UM:
 
     @subst1.setter
     def subst1(self, s: Tape) -> None:
-        self.frame.subst1 = self._check_and_pad(s)
+        self.frame.subst1 = self.check_tape(s)
 
     @property
     def subst2(self) -> Tape:
@@ -309,7 +302,7 @@ class UM:
 
     @subst2.setter
     def subst2(self, s: Tape) -> None:
-        self.frame.subst2 = self._check_and_pad(s)
+        self.frame.subst2 = self.check_tape(s)
 
     @property
     def steps(self) -> int:
@@ -491,7 +484,7 @@ class UM:
     def halted(self) -> bool:
         """Tests whether UM has halted."""
         m = re.search(f'({self._reQn})', self.work)
-        return m is not None and self._unpad(self.halt) == m.group(1)
+        return m is not None and self.halt == m.group(1)
 
     def step1(self) -> ty.Self:
         """Load `state` and `symbol`."""
@@ -499,8 +492,8 @@ class UM:
         if m is None:
             raise self.Error(f'bad work: {self.work}')
         f = self._next_frame()
-        f.state = self._check_and_pad(m.group(1))
-        f.symbol = self._check_and_pad(m.group(2))
+        f.state = self.check_tape(m.group(1))
+        f.symbol = self.check_tape(m.group(2))
         _logger.info('[step 1] state: %s', f.state)
         _logger.info('[step 1] symbol: %s', f.symbol)
         return self._push_frame(f)
@@ -509,15 +502,15 @@ class UM:
         """Load `left_symbol`."""
         m = re.search(rf'({self._reSn}){self._reQn}', self.work)
         f = self._next_frame()
-        f.left_symbol = self._check_and_pad(
-            m.group(1) if m is not None else self.SYM_B)
+        f.left_symbol = self.check_tape(
+            m.group(1) if m is not None else '')
         _logger.info('[step 2] left symbol: %s', f.left_symbol)
         return self._push_frame(f)
 
     def step3(self) -> ty.Self:
         """Load `next_state`, `next_symbol`, and `next_move`."""
-        Qs = self._unpad(self.state)
-        Sw = self._unpad(self.symbol)
+        Qs = self.state
+        Sw = self.symbol
         m = re.search(
             rf'{Qs}{Sw}({self._reQn})({self._reSn})({self._reLR})',
             self.machine)
@@ -526,9 +519,9 @@ class UM:
         Qy, Sz, m = m.groups()  # type: ignore
         _logger.info('[step 3] (%s, %s) ↦ (%s, %s, %s)', Qs, Sw, Qy, Sz, m)
         f = self._next_frame()
-        f.next_state = self._check_and_pad(Qy)
-        f.next_symbol = self._check_and_pad(Sz)
-        f.next_move = self._check_and_pad(m)
+        f.next_state = self.check_tape(Qy)
+        f.next_symbol = self.check_tape(Sz)
+        f.next_move = self.check_tape(m)
         _logger.info('[step 3] next state: %s', f.next_state)
         _logger.info('[step 3] next symbol: %s', f.next_symbol)
         _logger.info('[step 3] next move: %s', f.next_move)
@@ -536,15 +529,15 @@ class UM:
 
     def step4(self) -> ty.Self:
         """Load `subst1`."""
-        Qs = self._unpad(self.state)
-        Sw = self._unpad(self.symbol)
-        Su = self._unpad(self.left_symbol)
-        mov = self._unpad(self.next_move)
+        Qs = self.state
+        Sw = self.symbol
+        Su = self.left_symbol
+        mov = self.next_move
         f = self._next_frame()
         if mov == self.SYM_L:
-            f.subst1 = self._check_and_pad(Su + Qs + Sw)
+            f.subst1 = self.check_tape(Su + Qs + Sw)
         elif mov == self.SYM_R:
-            f.subst1 = self._check_and_pad(Qs + Sw)
+            f.subst1 = self.check_tape(Qs + Sw)
         else:
             raise self.Error(f'bad next_move: {mov}')
         _logger.info('[step 4] subst1: %s', f.subst1)
@@ -552,15 +545,15 @@ class UM:
 
     def step5(self) -> ty.Self:
         """Load `subst2`"""
-        Qy = self._unpad(self.next_state)
-        Sz = self._unpad(self.next_symbol)
-        Su = self._unpad(self.left_symbol)
-        mov = self._unpad(self.next_move)
+        Qy = self.next_state
+        Sz = self.next_symbol
+        Su = self.left_symbol
+        mov = self.next_move
         f = self._next_frame()
         if mov == self.SYM_L:
-            f.subst2 = self._check_and_pad(Qy + Su + Sz)
+            f.subst2 = self.check_tape(Qy + Su + Sz)
         elif mov == self.SYM_R:
-            f.subst2 = self._check_and_pad(Sz + Qy)
+            f.subst2 = self.check_tape(Sz + Qy)
         else:
             raise self.Error(f'bad next_move: {mov}')
         _logger.info('[step 5] subst2: %s', f.subst2)
@@ -568,10 +561,10 @@ class UM:
 
     def step6(self) -> ty.Self:
         """Replace `subst1` by `subst2` in `work`."""
-        s1 = self._unpad(self.subst1)
-        s2 = self._unpad(self.subst2)
+        s1 = self.subst1
+        s2 = self.subst2
         f = self._next_frame()
-        f.work = self._check_and_pad(self._unpad(self.work).replace(s1, s2, 1))
+        f.work = self.check_tape(self.work.replace(s1, s2, 1), pad=True)
         _logger.info('[step 6] work: %s', f.work)
         return self._push_frame(f)
 

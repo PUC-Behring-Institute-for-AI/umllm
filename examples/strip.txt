@@ -1,0 +1,14 @@
+# deletes leading and trailing 0s
+Q0S0 Q0.R
+Q0S1  Q1S1R
+Q1S0  Q1S0R
+Q1S1  Q1S1R
+Q1.   Q10.L
+Q10S0 Q10.L
+Q10S1 Q11S1R
+
+# halt
+Q11
+
+# input
+Q0|S0S0S0S1S0S1S0S0

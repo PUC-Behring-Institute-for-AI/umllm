@@ -1,0 +1,9 @@
+# deletes leading 0s
+Q0S0 Q0.R
+Q0S1 Q1S1L
+
+# halt
+Q1
+
+# input
+Q0|S0S0S0S1S0S1S0S0
