@@ -509,19 +509,19 @@ class UM:
 
     def step3(self) -> ty.Self:
         """Load `next_state`, `next_symbol`, and `next_move`."""
-        Qs = self.state
-        Sw = self.symbol
+        # Qs = self.state
+        # Sw = self.symbol
         m = re.search(
-            rf'{Qs}{Sw}({self._reQn})({self._reSn})({self._reLR})',
+            f'{self.state}{self.symbol}'
+            f'({self._reQn})({self._reSn})({self._reLR})',
             self.machine)
         if m is None:
             raise self.Error(f'bad machine: {self.machine}')
-        Qy, Sz, m = m.groups()  # type: ignore
-        _logger.info('[step 3] (%s, %s) ↦ (%s, %s, %s)', Qs, Sw, Qy, Sz, m)
+        next_state, next_symbol, next_move = m.groups()  # type: ignore
         f = self._next_frame()
-        f.next_state = self.check_tape(Qy)
-        f.next_symbol = self.check_tape(Sz)
-        f.next_move = self.check_tape(m)
+        f.next_state = self.check_tape(next_state)
+        f.next_symbol = self.check_tape(next_symbol)
+        f.next_move = self.check_tape(next_move)
         _logger.info('[step 3] next state: %s', f.next_state)
         _logger.info('[step 3] next symbol: %s', f.next_symbol)
         _logger.info('[step 3] next move: %s', f.next_move)
@@ -529,42 +529,35 @@ class UM:
 
     def step4(self) -> ty.Self:
         """Load `subst1`."""
-        Qs = self.state
-        Sw = self.symbol
-        Su = self.left_symbol
-        mov = self.next_move
         f = self._next_frame()
-        if mov == self.SYM_L:
-            f.subst1 = self.check_tape(Su + Qs + Sw)
-        elif mov == self.SYM_R:
-            f.subst1 = self.check_tape(Qs + Sw)
+        if self.next_move == self.SYM_L:
+            f.subst1 = self.check_tape(
+                self.left_symbol + self.state + self.symbol)
+        elif self.next_move == self.SYM_R:
+            f.subst1 = self.check_tape(self.state + self.symbol)
         else:
-            raise self.Error(f'bad next_move: {mov}')
+            raise self.Error(f'bad next_move: {self.next_move}')
         _logger.info('[step 4] subst1: %s', f.subst1)
         return self._push_frame(f)
 
     def step5(self) -> ty.Self:
         """Load `subst2`"""
-        Qy = self.next_state
-        Sz = self.next_symbol
-        Su = self.left_symbol
-        mov = self.next_move
         f = self._next_frame()
-        if mov == self.SYM_L:
-            f.subst2 = self.check_tape(Qy + Su + Sz)
-        elif mov == self.SYM_R:
-            f.subst2 = self.check_tape(Sz + Qy)
+        if self.next_move == self.SYM_L:
+            f.subst2 = self.check_tape(
+                self.next_state + self.left_symbol + self.next_symbol)
+        elif self.next_move == self.SYM_R:
+            f.subst2 = self.check_tape(self.next_symbol + self.next_state)
         else:
-            raise self.Error(f'bad next_move: {mov}')
+            raise self.Error(f'bad next_move: {self.next_move}')
         _logger.info('[step 5] subst2: %s', f.subst2)
         return self._push_frame(f)
 
     def step6(self) -> ty.Self:
         """Replace `subst1` by `subst2` in `work`."""
-        s1 = self.subst1
-        s2 = self.subst2
         f = self._next_frame()
-        f.work = self.check_tape(self.work.replace(s1, s2, 1), pad=True)
+        f.work = self.check_tape(self.work.replace(
+            self.subst1, self.subst2, 1), pad=True)
         _logger.info('[step 6] work: %s', f.work)
         return self._push_frame(f)
 
