@@ -1,1 +1,1 @@
-# UMLLM: An LLM-based Universal Turing Machine
+# UMLLM: An LLM-based Turing Machine Executor
