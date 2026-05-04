@@ -67,6 +67,15 @@ def api_clear() -> flask.Response:
     return _dump()
 
 
+@app.route('/api/reset', methods=['POST'])
+def api_reset() -> flask.Response:
+    try:
+        return _save_and_dump(_load().reset())
+    except UM.Error as err:
+        _logger.error(err)
+        return _dump()
+
+
 @app.route('/api/prev', methods=['POST'])
 def api_prev() -> flask.Response:
     try:
@@ -89,15 +98,6 @@ def api_next() -> flask.Response:
 def api_cycle() -> flask.Response:
     try:
         return _save_and_dump(_load().cycle())
-    except UM.Error as err:
-        _logger.error(err)
-        return _dump()
-
-
-@app.route('/api/reset', methods=['POST'])
-def api_reset() -> flask.Response:
-    try:
-        return _save_and_dump(_load().reset())
     except UM.Error as err:
         _logger.error(err)
         return _dump()

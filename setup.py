@@ -10,7 +10,7 @@ with open('README.md', 'r', encoding='utf-8') as fp:
 setuptools.setup(
     name='umllm',
     version=VERSION,
-    description='An LLM-based Universal Turing Machine Executor',
+    description='An LLM-based Turing Machine Executor',
     long_description=README,
     long_description_content_type='text/markdown',
     author='PUC-Behring Institute for AI',

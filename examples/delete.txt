@@ -1,0 +1,17 @@
+# deletes all bits 0
+Q0S0 Q0.R
+Q0S1 Q1.R
+Q0.  Q3.R
+#=
+Q1S0 Q2S1L
+Q1S1 Q1S1R
+Q1.  Q3S1R
+#=
+Q2S1 Q2S1L
+Q2.  Q0.R
+
+# halt
+Q3
+
+# input
+Q0S0S1S0S0S0S1S1S0S0S0S1S1S1S1

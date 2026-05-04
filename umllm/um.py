@@ -20,17 +20,41 @@ _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 class UM:
     """Universal Machine."""
 
-    #: State of the simulated machine.
+    #: State of the simulated machine (delimiter).
     SYM_Q: ty.Final[str] = 'Q'
 
-    #: Symbol of the simulated machine.
+    #: Symbol of the simulated machine (delimiter).
     SYM_S: ty.Final[str] = 'S'
 
-    #: The binary digit "0".
+    #: The digit "0".
     SYM_0: ty.Final[str] = '0'
 
-    #: The binary digit "1".
+    #: The digit "1".
     SYM_1: ty.Final[str] = '1'
+
+    #: The digit "2".
+    SYM_2: ty.Final[str] = '2'
+
+    #: The digit "3".
+    SYM_3: ty.Final[str] = '3'
+
+    #: The digit "4".
+    SYM_4: ty.Final[str] = '4'
+
+    #: The digit "5".
+    SYM_5: ty.Final[str] = '5'
+
+    #: The digit "6".
+    SYM_6: ty.Final[str] = '6'
+
+    #: The digit "7".
+    SYM_7: ty.Final[str] = '7'
+
+    #: The digit "8".
+    SYM_8: ty.Final[str] = '8'
+
+    #: The digit "9".
+    SYM_9: ty.Final[str] = '9'
 
     #: The blank symbol.
     SYM_B: ty.Final[str] = '.'
@@ -45,15 +69,27 @@ class UM:
     SYM_X: ty.Final[str] = ' '
 
     _alphabet: ty.ClassVar[frozenset[Symbol]] =\
-        frozenset([SYM_Q, SYM_S, SYM_0, SYM_1, SYM_B, SYM_L, SYM_R, SYM_X,])
+        frozenset([SYM_Q, SYM_S, SYM_0, SYM_1, SYM_2, SYM_3,
+                   SYM_4, SYM_5, SYM_6, SYM_7, SYM_8, SYM_9,
+                   SYM_B, SYM_L, SYM_R, SYM_X,])
 
     _tr: ty.ClassVar[dict[str, Symbol]] = {
-        '_': SYM_B,
         'q': SYM_Q,
         's': SYM_S,
-        '|': SYM_X,
         '₀': SYM_0,
         '₁': SYM_1,
+        '₂': SYM_2,
+        '₃': SYM_3,
+        '₄': SYM_4,
+        '₅': SYM_5,
+        '₆': SYM_6,
+        '₇': SYM_7,
+        '₈': SYM_8,
+        '₉': SYM_9,
+        '_': SYM_B,
+        '<': SYM_L,
+        '>': SYM_R,
+        '|': SYM_X,
     }
 
     @classmethod
@@ -375,20 +411,20 @@ class UM:
             return cls.load(fp.read())
 
     @property
-    def _re01(self) -> str:
-        return '[' + self.SYM_0 + self.SYM_1 + ']'
+    def _re09(self) -> str:
+        return '[0-9]'
 
     @property
-    def _re01s(self) -> str:
-        return self._re01 + '+'
+    def _re09s(self) -> str:
+        return self._re09 + '+'
 
     @property
     def _reQn(self) -> str:
-        return self.SYM_Q + self._re01s
+        return self.SYM_Q + self._re09s
 
     @property
     def _reSn(self) -> str:
-        return '(?:' + self.SYM_S + self._re01s + '|' + self.SYM_B + ')'
+        return '(?:' + self.SYM_S + self._re09s + '|' + self.SYM_B + ')'
 
     @property
     def _reLR(self) -> str:
@@ -400,7 +436,7 @@ class UM:
             while input:
                 c = input[0]
                 if c == self.SYM_Q or c == self.SYM_S:
-                    m = re.match(f'({self._re01s})', input[1:])
+                    m = re.match(f'({self._re09s})', input[1:])
                     if m:
                         k = 'Q' if c == self.SYM_Q else 'S'
                         s = html.escape(m.group(1))
@@ -514,7 +550,7 @@ class UM:
             f'({self._reQn})({self._reSn})({self._reLR})',
             self.machine)
         if m is None:
-            raise self.Error(f'bad machine: {self.machine}')
+            raise self.Error(f'no transition for: {self.state}{self.symbol}')
         next_state, next_symbol, next_move = m.groups()  # type: ignore
         f = self._next_frame()
         f.next_state = self.check_tape(next_state)

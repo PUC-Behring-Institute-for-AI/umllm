@@ -2,15 +2,21 @@ const UM = (() => {
 
     function init() {
         $("#clear").on("click", onClear);
+        $("#reset").on("click", onReset);
         $("#prev").on("click", onPrev);
         $("#next").on("click", onNext);
         $("#cycle").on("click", onCycle);
-        $("#reset").on("click", onReset);
         refresh();
     }
 
     function onClear() {
         $.postJSON("/api/clear", {},
+                   (response) => {refresh(response)},
+                   (xhr) => console.error("Error:", xhr.responseText));
+    }
+
+    function onReset() {
+        $.postJSON("/api/reset", {},
                    (response) => {refresh(response)},
                    (xhr) => console.error("Error:", xhr.responseText));
     }
@@ -33,12 +39,6 @@ const UM = (() => {
                    (xhr) => console.error("Error:", xhr.responseText));
     }
 
-    function onReset() {
-        $.postJSON("/api/reset", {},
-                   (response) => {refresh(response)},
-                   (xhr) => console.error("Error:", xhr.responseText));
-    }
-
     function refresh(response) {
         if (response) {
             filename = response.filename;
@@ -52,7 +52,7 @@ const UM = (() => {
             }
         } else {
             $("#filename").text("(no file)");
-            $("#prev, #next, #cycle, #reset").prop("disabled", true);
+            $("#reset, #prev, #next, #cycle").prop("disabled", true);
         }
         $("#machine").html(um.formatted_machine || "");
         $("#halt").html(um.halt || "");

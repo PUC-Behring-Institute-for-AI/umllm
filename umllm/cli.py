@@ -22,42 +22,78 @@ from .um import UM
 _logger: ty.Final[logging.Logger] = logging.getLogger(__name__)
 
 
-@click.command(help=__description__ + '.')
+class CustomGroup(click.Group):
+    def format_epilog(
+            self,
+            ctx: click.Context,
+            formatter: click.HelpFormatter
+    ) -> None:
+        if self.epilog:
+            formatter.write_paragraph()
+            for line in self.epilog.split('\n'):
+                formatter.write_text(line)
+
+
+@click.group(
+    cls=CustomGroup,
+    help=f'UMLLM: {__description__}.',
+    epilog='See <https://github.com/PUC-Behring-Institute-for-AI/umllm>')
+@click.version_option(version=__version__)
+def cli() -> None:
+    pass
+
+
+@cli.command(help='Start Flask app.')
 @click.option(
-    '-a', '--app',
+    '-d', '--debug', 'debug',
     is_flag=True,
-    default='False',
-    help='Start Flask app.')
+    default=False,
+    help="Whether to enable Flask's debug mode.")
 @click.option(
-    '-l', '--load',
-    'load',
+    '-p', '--port', 'port',
+    type=int,
+    default=5050,
+    help='Server port.')
+def flask(debug: bool, port: int) -> None:
+    from .app import app as _app
+    _app.run(port=port, debug=debug)
+
+
+@cli.command(help='Start interactive shell.')
+@click.option(
+    '-i', '--input', 'input',
+    type=str,
+    required=False,
+    help='UM input (override).')
+@click.option(
+    '-l', '--load', 'load',
     type=pathlib.Path,
-    metavar='PATH',
+    required=False,
     help='UM to load.')
 @click.option(
-    '-v', '--verbose',
-    'verbose',
+    '-v', '--verbose', 'verbose',
     is_flag=True,
     default=False,
     help='Be verbose.')
-@click.version_option(version=__version__)
-def cli(app: bool, verbose: bool, load: pathlib.Path | None = None) -> None:
-    if app:
-        from .app import app as _app
-        _app.run(port=5050, debug=True)
-        sys.exit(0)
+def shell(
+        input: str | None,
+        load: pathlib.Path | None,
+        verbose: bool
+) -> None:
     if verbose:
         logging.basicConfig(level=logging.INFO)
     um: UM | None = None
     if load:
         um = UM.load_file(load)
+        if input:
+            um.work = input
     while True:
         try:
-            res = click.prompt(f'{__title__}')
+            res = click.prompt(f'{__title__}', default='dump')
         except Exception:
             break
         cmd, *args = res.split(' ')
-        if 'help'.startswith(cmd):
+        if cmd == '?' or 'help'.startswith(cmd):
             print('''\
 (h)elp           display this help
 (q)uit           quit
@@ -65,11 +101,11 @@ def cli(app: bool, verbose: bool, load: pathlib.Path | None = None) -> None:
 (d)ump           dump UM contents
 (l)oad <file>    load UM from file
 
-(a)ll            step UM until it halts
+(r)un            run UM until it halts
 (c)ycle          cycle UM once
 (n)ext           step UM once
 (p)rev           revert last step
-(r)eset          revert all steps
+(R)eset          revert all steps
             ''')
         elif 'quit'.startswith(cmd):
             break
@@ -85,7 +121,7 @@ def cli(app: bool, verbose: bool, load: pathlib.Path | None = None) -> None:
             assert um
             if 'dump'.startswith(cmd):
                 click.echo(um)
-            elif 'all'.startswith(cmd):
+            elif 'run'.startswith(cmd):
                 um.run()
             elif 'cycle'.startswith(cmd):
                 um.cycle()
@@ -95,7 +131,7 @@ def cli(app: bool, verbose: bool, load: pathlib.Path | None = None) -> None:
                 um.prev()
             elif 'prev'.startswith(cmd):
                 um.prev()
-            elif 'reset'.startswith(cmd):
+            elif 'Reset'.startswith(cmd):
                 um.reset()
             else:
                 _error('unknown command "%s", try "help"', cmd)
