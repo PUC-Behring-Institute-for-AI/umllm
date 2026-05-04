@@ -50,9 +50,10 @@ const UM = (() => {
             if ("halted" in um && um.halted) {
                 $("#filename").text(filename + " (halted)");
             }
+            $("#clear").prop("disabled", false);
         } else {
             $("#filename").text("(no file)");
-            $("#reset, #prev, #next, #cycle").prop("disabled", true);
+            $("#clear, #reset, #prev, #next, #cycle").prop("disabled", true);
         }
         $("#machine").html(um.formatted_machine || "");
         $("#halt").html(um.halt || "");
