@@ -23,7 +23,7 @@ setuptools.setup(
     package_data={ 'umllm': ['py.typed'], },
     include_package_data=True,
     package_dir={'umllm': 'umllm'},
-    install_requires=[ 'click', 'flask', 'types-click', 'typing-extensions', ],
+    install_requires=[ 'click', 'flask', 'langchain-core', 'langchain-ollama', 'langchain-openai', 'types-click', 'typing-extensions', ],
     extras_require={'all': [*['flake8', 'isort', 'mypy', 'pylint', 'pyright', 'pytest', 'pytest-asyncio', 'pytest-cov', 'pytest-mypy', 'pyupgrade', 'setuptools', 'tox'], *itertools.chain(*{}.values())], 'dev': ['build', 'twine', *[*['flake8', 'isort', 'mypy', 'pylint', 'pyright', 'pytest', 'pytest-asyncio', 'pytest-cov', 'pytest-mypy', 'pyupgrade', 'setuptools', 'tox'], *itertools.chain(*{}.values())]], 'tests': ['flake8', 'isort', 'mypy', 'pylint', 'pyright', 'pytest', 'pytest-asyncio', 'pytest-cov', 'pytest-mypy', 'pyupgrade', 'setuptools', 'tox'], **{}},
     entry_points={ 'console_scripts': ['umllm = umllm.cli:cli'], },
     zip_safe=False,
