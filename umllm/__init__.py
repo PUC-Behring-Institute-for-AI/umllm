@@ -6,10 +6,12 @@ from __future__ import annotations
 import os
 
 from .__version__ import __description__, __title__, __version__  # noqa: F401
+from .llm import UMLLM
 from .um import UM
 
 __all__ = (
     'UM',
+    'UMLLM',
 )
 
 

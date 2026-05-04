@@ -384,7 +384,7 @@ class UM:
         return json.dumps(self.to_dict(), **kwargs)
 
     @classmethod
-    def load(cls, s: str) -> ty.Self:
+    def load(cls, s: str, **kwargs: ty.Any) -> ty.Self:
         """Loads UM from string."""
         machine: str = ''
         halt: str = ''
@@ -403,12 +403,12 @@ class UM:
             halt += line
         for line in it:
             work += line
-        return cls(machine, halt, work)
+        return cls(machine, halt, work, **kwargs)
 
     @classmethod
-    def load_file(cls, path: pathlib.Path | str) -> ty.Self:
+    def load_file(cls, path: pathlib.Path | str, **kwargs: ty.Any) -> ty.Self:
         with open(pathlib.Path(path), 'rt', encoding='utf-8') as fp:
-            return cls.load(fp.read())
+            return cls.load(fp.read(), **kwargs)
 
     @property
     def _re09(self) -> str:

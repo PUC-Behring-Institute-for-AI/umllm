@@ -1,0 +1,1 @@
+Consider the initial configuration the contents of "Machine" is "{{machine}}" and the contents of "Work" is "{{work}}".  Run one cycle (steps 1 to 6) of the simulated Turing machine, display the contents of the "Work" tape after the cycle, and wait for my command.
