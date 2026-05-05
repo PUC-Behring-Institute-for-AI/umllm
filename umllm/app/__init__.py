@@ -10,7 +10,7 @@ import os
 import flask
 import typing_extensions as ty
 
-from ..um import UM
+from ..um import UM as _UM
 
 #: The Flask application.
 app: ty.Final[flask.Flask] = flask.Flask(__name__)
@@ -21,6 +21,16 @@ if not SECRET_KEY:
     SECRET_KEY = secrets.token_hex()
 app.config['SECRET_KEY'] = SECRET_KEY
 
+#: The name of the currently loaded.
+FILENAME: str | None = None
+
+#: The currently loaded input.
+INPUT: str | None = None
+
+#: The currently loaded UM.
+UM: _UM | None = None
+
+#: The UM log stream.
 LOG_STREAM: ty.Final[io.StringIO] = io.StringIO()
 _logger: ty.Final[logging.Logger] = logging.getLogger('umllm')
 _logger.setLevel(level=logging.INFO)
@@ -31,24 +41,25 @@ _logger.addHandler(_logger_handler)
 
 @app.route("/")
 def index() -> str:
+    _um_dump(UM) if UM else {}
     return flask.render_template(
         'index.html',
-        filename=flask.session.get('filename'),
-        um=flask.session.get('um', {}),
+        filename=FILENAME,
+        input=INPUT,
+        um=_um_dump(UM) if UM else {},
         log=LOG_STREAM.getvalue())
 
 
 @app.route('/', methods=['POST'])
 def upload() -> flask.Response:
+    global FILENAME, INPUT, UM
     file = flask.request.files['file']
-    input = flask.request.form['input']
-    flask.session['filename'] = file.filename
-    flask.session['input'] = input
+    FILENAME = file.filename
+    INPUT = flask.request.form['input']
     try:
-        um = UM.load(file.stream.read().decode('utf-8'))
-        if input:
-            um.work = input
-        _save(um)
+        UM = _UM.load(file.stream.read().decode('utf-8'))
+        if INPUT:
+            UM.work = INPUT
     except ValueError as err:
         _logger.error(err)
     return flask.redirect(flask.url_for('index'))  # type: ignore
@@ -56,12 +67,10 @@ def upload() -> flask.Response:
 
 @app.route('/api/clear', methods=['POST'])
 def api_clear() -> flask.Response:
-    if 'filename' in flask.session:
-        del flask.session['filename']
-    if 'input' in flask.session:
-        del flask.session['input']
-    if 'um' in flask.session:
-        del flask.session['um']
+    global FILENAME, INPUT, UM
+    FILENAME = None
+    INPUT = None
+    UM = None
     LOG_STREAM.seek(0)
     LOG_STREAM.truncate(0)
     return _dump()
@@ -70,54 +79,58 @@ def api_clear() -> flask.Response:
 @app.route('/api/reset', methods=['POST'])
 def api_reset() -> flask.Response:
     try:
-        return _save_and_dump(_load().reset())
-    except UM.Error as err:
+        assert UM
+        UM.reset()
+    except _UM.Error as err:
         _logger.error(err)
-        return _dump()
+    return _dump()
 
 
 @app.route('/api/prev', methods=['POST'])
 def api_prev() -> flask.Response:
     try:
-        return _save_and_dump(_load().prev())
-    except UM.Error as err:
+        assert UM
+        UM.prev()
+    except _UM.Error as err:
         _logger.error(err)
-        return _dump()
+    return _dump()
 
 
 @app.route('/api/next', methods=['POST'])
 def api_next() -> flask.Response:
     try:
-        return _save_and_dump(_load().next())
-    except UM.Error as err:
+        assert UM
+        UM.next()
+    except _UM.Error as err:
         _logger.error(err)
-        return _dump()
+    return _dump()
 
 
 @app.route('/api/cycle', methods=['POST'])
 def api_cycle() -> flask.Response:
     try:
-        return _save_and_dump(_load().cycle())
-    except UM.Error as err:
+        assert UM
+        UM.cycle()
+    except _UM.Error as err:
         _logger.error(err)
-        return _dump()
-
-
-def _load() -> UM:
-    return UM.of_dict(flask.session['um'])
-
-
-def _save_and_dump(um: UM) -> flask.Response:
-    _save(um)
     return _dump()
 
 
-def _save(um: UM) -> None:
+def _dump() -> flask.Response:
+    return flask.jsonify({
+        'filename': FILENAME,
+        'input': INPUT,
+        'um': _um_dump(UM) if UM else {},
+        'log': LOG_STREAM.getvalue()})
+
+
+def _um_dump(um: _UM) -> dict[str, ty.Any]:
     t = um.to_dict()
     for k, v in t['_history'][-1].items():
         if k == 'steps':
             t[k] = v
         else:
+            print(k, v)
             t[k] = um._tape2html(v)
     t['formatted_machine'] = _format_machine(um)
     t['formatted_work'] = _format_work(um)
@@ -125,10 +138,10 @@ def _save(um: UM) -> None:
     t['next_step'] = um.next_step
     t['cycles'] = um.cycles
     t['halted'] = um.halted()
-    flask.session['um'] = t
+    return t
 
 
-def _format_machine(um: UM) -> str:
+def _format_machine(um: _UM) -> str:
     def it() -> ty.Iterator[str]:
         yield '<table><tbody>'
         f = um._tape2html
@@ -142,18 +155,10 @@ def _format_machine(um: UM) -> str:
     return '\n'.join(it())
 
 
-def _format_work(um: UM) -> str:
+def _format_work(um: _UM) -> str:
     f = um._tape2html
     try:
         s, q, t = um._parse_work()
         return f'{f(s)}<strong>{f(q)}</strong>{f(t)}'
     except um.Error:
         return f(um.work)
-
-
-def _dump() -> flask.Response:
-    return flask.jsonify({
-        'filename': flask.session.get('filename'),
-        'input': flask.session.get('input'),
-        'um': flask.session.get('um', {}),
-        'log': LOG_STREAM.getvalue()})

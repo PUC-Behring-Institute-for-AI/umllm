@@ -30,11 +30,11 @@ class UMLLM(UM):
 
     #: The default system prompt.
     _default_system_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('system.md')
+        _load_prompt_template('system.txt')
 
     #: The default human prompt.
     _default_human_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('human.md')
+        _load_prompt_template('human.txt')
 
     @classmethod
     def _check_prompt_template(
@@ -146,10 +146,17 @@ class UMLLM(UM):
         # push system/human messages
         if self.messages is None or self.fresh_subst:
             self.messages = [
-                SystemMessage(content=self.system_prompt.format()),
+                SystemMessage(content=self.system_prompt.format(
+                    SYM_Q=self.SYM_Q,
+                    SYM_S=self.SYM_S,
+                    SYM_0=self.SYM_0,
+                    SYM_1=self.SYM_1,
+                    SYM_B=self.SYM_B,
+                    SYM_L=self.SYM_L,
+                    SYM_R=self.SYM_R)),
                 HumanMessage(content=self.human_prompt.format(
-                    machine=' '.join(map(''.join, self._parse_machine())),
-                    work=''.join(self._parse_work())))]
+                    MACHINE=' '.join(map(''.join, self._parse_machine())),
+                    WORK=''.join(self._parse_work())))]
             _logger.info('sending to LLM:\n%s', self.messages[0].content)
         else:
             self.messages.append(HumanMessage('continue'))

@@ -13,7 +13,7 @@
         <div id="umllm-panel">
           <fieldset id="umllm-fieldset">
             <legend>UMLLM</legend>
-            <form method="POST" action="" enctype="multipart/form-data">
+            <form name="umllm" method="POST" enctype="multipart/form-data">
               <table style="width:100%;">
                 <colgroup>
                   <col span="1" style="width:15%;">
@@ -22,12 +22,12 @@
                 <tbody>
                   <!-- <tr> -->
                   <!--   <td align="center" colspan="2"> -->
-                  <!--   <input type="radio" id="um" name="type" value="um" checked/> -->
-                  <!--   <label for="um">um</label> -->
-                  <!--   <input type="radio" id="llm" name="type" value="llm" checked/> -->
-                  <!--   <label for="llm">llm</label> -->
+                  <!--     <input type="radio" id="um" name="type" value="um" checked/> -->
+                  <!--     <label for="um">um</label> -->
+                  <!--     <input type="radio" id="llm" name="type" value="llm" checked/> -->
+                  <!--     <label for="llm">llm</label> -->
                   <!--   </td> -->
-                  </tr>
+                  <!-- </tr> -->
                   <tr>
                     <td align="right"><label for="file">file</label></td>
                     <td><input type="file" name="file"/></td>
@@ -40,7 +40,6 @@
                     <td colspan="2" align="center" style="padding-top:1em;">
                       <button type="button" id="clear" disabled>Clear</button>
                       <input type="submit" value="Load"/>
-                      <!-- <button type="button" id="load">Load</button> -->
                     </td>
                   </tr>
                 </tbody>

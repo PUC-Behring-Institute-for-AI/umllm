@@ -420,15 +420,17 @@ class UM:
 
     @property
     def _reQn(self) -> str:
-        return self.SYM_Q + self._re09s
+        return re.escape(self.SYM_Q) + self._re09s
 
     @property
     def _reSn(self) -> str:
-        return '(?:' + self.SYM_S + self._re09s + '|' + self.SYM_B + ')'
+        return ('(?:'
+                + re.escape(self.SYM_S) + self._re09s + '|'
+                + re.escape(self.SYM_B) + ')')
 
     @property
     def _reLR(self) -> str:
-        return '[' + self.SYM_L + self.SYM_R + ']'
+        return '[' + re.escape(self.SYM_L) + re.escape(self.SYM_R) + ']'
 
     def _tape2html(self, tape: Tape) -> str:
         def it(input: str) -> ty.Iterator[str]:
@@ -471,10 +473,9 @@ class UM:
 
     def _parse_work(self) -> tuple[str, str, str]:
         m = re.match(
-            f'({self._reSn}*)'
+            f'({self._reSn}+)'
             + f'({self._reQn})'
-            + f'({self._reSn}*)',
-            self.work)
+            + f'({self._reSn}+)', self.work)
         if m is None:
             raise self.Error(f'bad work: {self.work}')
         return m.groups()       # type: ignore
@@ -557,7 +558,7 @@ class UM:
     def step3(self) -> ty.Self:
         """Load `next_state`, `next_symbol`, and `next_move`."""
         m = re.search(
-            f'{self.state}{self.symbol}'
+            f'{re.escape(self.state)}{re.escape(self.symbol)}'
             f'({self._reQn})({self._reSn})({self._reLR})',
             self.machine)
         if m is None:
