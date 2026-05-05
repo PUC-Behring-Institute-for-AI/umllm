@@ -485,19 +485,30 @@ class UM:
         self._history = self._history[:1]
         return self
 
-    def run(self) -> ty.Self:
-        """Executes step cycles until the halting state is reached."""
-        if not self.halted():
-            _logger.info('[run]')
-        while not self.halted():
+    def run(self, fuel: int = 10) -> ty.Self:
+        """Executes step cycles until halting state is reached or fuel (in
+        number of cycles) is exhausted."""
+        while True:
+            if self.halted():
+                _logger.info('[run] halted')
+                break
+            if fuel == 0:
+                _logger.info('[run] no more fuel')
+                break
+            assert fuel > 0
+            _logger.info('[run] fuel: %d', fuel)
             self.cycle()
+            fuel -= 1
         return self
 
     def cycle(self) -> ty.Self:
         """Executes one cycle of steps."""
         if not self.halted():
             _logger.info('[cycle %d]', self.cycles)
-        while not self.halted():
+        while True:
+            if self.halted():
+                _logger.info('[cycle %d] halted', self.cycles)
+                break
             self.next()
             if self.next_step == 1:
                 break
