@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import collections
 import re
 
 import typing_extensions as ty
@@ -84,8 +85,14 @@ class UMLLM(UM):
     #: The human prompt.
     human_prompt: PromptTemplate
 
+    #: Whether to provide a fresh substitution task to the LLM at each cycle.
+    fresh_subst: bool
+
     #: The messages to send to LLM.
     messages: list[BaseMessage] | None
+
+    #: Accumulated usage metadata.
+    usage_metadata: dict[str, int]
 
     def __init__(
             self,
@@ -104,6 +111,7 @@ class UMLLM(UM):
             _empty: bool | None = None,
             system_prompt: PromptTemplate | str | None = None,
             human_prompt: PromptTemplate | str | None = None,
+            fresh_subst: bool | None = None,
             llm: BaseChatModel | None = None,
             **kwargs: ty.Any
     ) -> None:
@@ -126,14 +134,17 @@ class UMLLM(UM):
             system_prompt, self._default_system_prompt)
         self.human_prompt = self._check_prompt_template(
             human_prompt, self._default_human_prompt)
+        self.fresh_subst = bool(fresh_subst)
         self.messages = None   # initialized at the first step
+        self.usage_metadata = collections.defaultdict(int)
 
     _re_step6_work: ty.Final[re.Pattern[str]] = re.compile(
         r'<work>(.*?)</work>', re.IGNORECASE)
 
     @ty.override
     def step6(self) -> ty.Self:
-        if self.messages is None:
+        # push system/human messages
+        if self.messages is None or self.fresh_subst:
             self.messages = [
                 SystemMessage(content=self.system_prompt.format()),
                 HumanMessage(content=self.human_prompt.format(
@@ -143,21 +154,31 @@ class UMLLM(UM):
         else:
             self.messages.append(HumanMessage('continue'))
         assert self.messages is not None
-        saved_work = self.work
-        super().step6()
+        # invoke LLM with messages
         _logger.info('sending to LLM:\n%s', self.messages[-1].content)
         response = self.llm.invoke(self.messages)
         assert isinstance(response.content, str)
+        if response.usage_metadata:
+            for k, v in response.usage_metadata.items():
+                if isinstance(v, int):
+                    self.usage_metadata[k] += v
         _logger.info('received from LLM:\n%s', response.content)
+        # parse LLM response
         m = self._re_step6_work.search(response.content)
         if m is None:
             raise self.Error('bad work: failed parse LLM response')
-        work = self.check_tape(m.group(1), pad=True)
-        if self.work != work:
+        llm_work = self.check_tape(m.group(1), pad=True)
+        # check LLM response
+        prev_work = self.work
+        super().step6()
+        next_work = self.work
+        if llm_work != next_work:
+            assert len(self._history) > 1
+            self._history.pop()  # revert to the previous frame
             raise self.Error(f'''\
 bad work:
-- before step6:               {saved_work}
-- after step6, expected:      {self.work}
-- after step6, got from LLM:  {work}''')
+* before step6:              {prev_work}
+* after step6, expected:     {next_work}
+* after step6, got from LLM: {llm_work}''')
         self.messages.append(response)
         return self
