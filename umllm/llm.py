@@ -181,4 +181,6 @@ bad work:
 * after step6, expected:     {next_work}
 * after step6, got from LLM: {llm_work}''')
         self.messages.append(response)
+        _logger.info('usage_metadata:\n%s', '\n'.join(
+            (f'* {k}: {v}' for k, v in sorted(self.usage_metadata.items()))))
         return self

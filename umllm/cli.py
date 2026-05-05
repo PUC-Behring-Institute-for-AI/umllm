@@ -71,6 +71,16 @@ def flask(debug: bool, port: int) -> None:
     required=False,
     help='UM to load.')
 @click.option(
+    '-m', '--model', 'model',
+    type=str,
+    default='gpt-5.4',
+    help='LLM model to use.')
+@click.option(
+    '-t', '--type', 'type',
+    type=click.Choice(['um', 'llm']),
+    default='um',
+    help='UM type.')
+@click.option(
     '-v', '--verbose', 'verbose',
     is_flag=True,
     default=False,
@@ -78,13 +88,26 @@ def flask(debug: bool, port: int) -> None:
 def shell(
         input: str | None,
         load: pathlib.Path | None,
+        model: str,
+        type: str,
         verbose: bool
 ) -> None:
     if verbose:
         logging.basicConfig(level=logging.INFO)
     um: UM | None = None
     if load:
-        um = UM.load_file(load)
+        if type == 'um':
+            um = UM.load_file(load)
+        elif type == 'llm':
+            from .llm import UMLLM
+            um = UMLLM.load_file(
+                load,
+                provider='openai',
+                model=model,
+                temperature=0.,
+                seed=0)
+        else:
+            raise RuntimeError('should not get here')
         if input:
             um.work = input
     while True:
@@ -119,22 +142,25 @@ def shell(
                 _error('no UM loaded')
                 continue
             assert um
-            if 'dump'.startswith(cmd):
-                click.echo(um)
-            elif 'run'.startswith(cmd):
-                um.run()
-            elif 'cycle'.startswith(cmd):
-                um.cycle()
-            elif 'next'.startswith(cmd):
-                um.next()
-            elif 'prev'.startswith(cmd):
-                um.prev()
-            elif 'prev'.startswith(cmd):
-                um.prev()
-            elif 'Reset'.startswith(cmd):
-                um.reset()
-            else:
-                _error('unknown command "%s", try "help"', cmd)
+            try:
+                if 'dump'.startswith(cmd):
+                    click.echo(um)
+                elif 'run'.startswith(cmd):
+                    um.run()
+                elif 'cycle'.startswith(cmd):
+                    um.cycle()
+                elif 'next'.startswith(cmd):
+                    um.next()
+                elif 'prev'.startswith(cmd):
+                    um.prev()
+                elif 'prev'.startswith(cmd):
+                    um.prev()
+                elif 'Reset'.startswith(cmd):
+                    um.reset()
+                else:
+                    _error('unknown command "%s", try "help"', cmd)
+            except um.Error as err:
+                _error("%s", err)
 
 
 def _error(fmt: str, *args: ty.Any) -> None:
