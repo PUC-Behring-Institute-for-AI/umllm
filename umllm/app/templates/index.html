@@ -8,6 +8,132 @@
           rel="stylesheet"/>
   </head>
   <body>
+    <main>
+      <div class="flex-container">
+        <div id="umllm-panel">
+          <fieldset id="umllm-fieldset">
+            <legend>UMLLM</legend>
+            <form method="POST" action="" enctype="multipart/form-data">
+              <table style="width:100%;">
+                <colgroup>
+                  <col span="1" style="width:15%;">
+                  <col span="1" style="width:85%;">
+                </colgroup>
+                <tbody>
+                  <!-- <tr> -->
+                  <!--   <td align="center" colspan="2"> -->
+                  <!--   <input type="radio" id="um" name="type" value="um" checked/> -->
+                  <!--   <label for="um">um</label> -->
+                  <!--   <input type="radio" id="llm" name="type" value="llm" checked/> -->
+                  <!--   <label for="llm">llm</label> -->
+                  <!--   </td> -->
+                  </tr>
+                  <tr>
+                    <td align="right"><label for="file">file</label></td>
+                    <td><input type="file" name="file"/></td>
+                  </tr>
+                  <tr>
+                    <td align="right"><label for="input">input</label></td>
+                    <td><input type="text" name="input"/></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" align="center" style="padding-top:1em;">
+                      <button type="button" id="clear" disabled>Clear</button>
+                      <input type="submit" value="Load"/>
+                      <!-- <button type="button" id="load">Load</button> -->
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </form>
+          </fieldset>
+          <p id="copyright">
+            Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI<br/>
+            <a href="https://github.com/PUC-Behring-Institute-for-AI/umllm">
+              github.com/PUC-Behring-Institute-for-AI/umllm</a>
+          </p>
+        </div>
+        <div id="machine-panel">
+          <fieldset id="machine-fieldset">
+            <legend id="filename"></legend>
+            <table style="width: 100%;">
+              <colgroup>
+                <col span="1" style="width:15%;">
+                <col span="1" style="width:85%;">
+              </colgroup>
+              <tbody>
+                <tr>
+                  <td align="center" colspan="2">
+                    <button id="reset" disabled>Reset</button>
+                    <button id="prev" disabled>Prev</button>
+                    <button id="next" disabled>Next</button>
+                    <button id="cycle" disabled>Cycle</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="right">machine</td>
+                  <td id="machine"></td>
+                </tr>
+                <tr>
+                  <td align="right">halt</td>
+                  <td id="halt"></td>
+                </tr>
+                <tr>
+                  <td colspan="2"><br/></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step6);">work</td>
+                  <td id="work"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step1);">state</td>
+                  <td id="state"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step1);">symbol</td>
+                  <td id="symbol"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step2);">left_symbol</td>
+                  <td id="left_symbol"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step3);">next_state</td>
+                  <td id="next_state"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step3);">next_symbol</td>
+                  <td id="next_symbol"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step3);">next_move</td>
+                  <td id="next_move"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step4);">subst1</td>
+                  <td id="subst1"></td>
+                </tr>
+                <tr>
+                  <td align="right" style="color:var(--step5);">subst2</td>
+                  <td id="subst2"></td>
+                </tr>
+                <tr>
+                  <td align="right">steps</td>
+                  <td id="steps"></td>
+                </tr>
+              </tbody>
+            </table>
+          </fieldset>
+        </div>
+        <div id="log-panel">
+          <fieldset id="log-fieldset">
+            <legend>log</legend>
+            <textarea id="log" readonly>
+            </textarea>
+          </fieldset>
+        </div>
+      </div>
+    </main>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
       let filename = {{filename | tojson}};
@@ -15,112 +141,5 @@
       let log = {{log | tojson}};
     </script>
     <script src="{{url_for('static', filename='script.js')}}"></script>
-    <main>
-      <fieldset>
-        <legend>UMLLM</legend>
-        <form method="POST" action="" enctype="multipart/form-data">
-          <table style="width:100%;">
-            <colgroup>
-              <col span="1" style="width:15%;">
-              <col span="1" style="width:85%;">
-            </colgroup>
-            <tbody>
-              <tr>
-                <td align="right"><label for="file">file</label></td>
-                <td><input type="file" name="file"/></td>
-              </tr>
-              <tr>
-                <td align="right"><label for="input">input</label></td>
-                <td><input type="text" name="input"/></td>
-              </tr>
-              <tr>
-                <td colspan="2" align="center" style="padding-top:1em;">
-                  <button type="button" id="clear" disabled>Clear</button>
-                  <input type="submit" value="Load"/>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </form>
-      </fieldset>
-      <div id="controls">
-        <button id="reset" disabled>Reset</button>
-        <button id="prev" disabled>Prev</button>
-        <button id="next" disabled>Next</button>
-        <button id="cycle" disabled>Cycle</button>
-      </div>
-      <fieldset>
-        <legend id="filename"></legend>
-        <table style="width: 100%;">
-          <colgroup>
-            <col span="1" style="width:15%;">
-            <col span="1" style="width:85%;">
-          </colgroup>
-          <tbody>
-            <tr>
-              <td align="right">machine</td>
-              <td id="machine"></td>
-            </tr>
-            <tr>
-              <td align="right">halt</td>
-              <td id="halt"></td>
-            </tr>
-            <tr>
-              <td colspan="2"><br/></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step6);">work</td>
-              <td id="work"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step1);">state</td>
-              <td id="state"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step1);">symbol</td>
-              <td id="symbol"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step2);">left_symbol</td>
-              <td id="left_symbol"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step3);">next_state</td>
-              <td id="next_state"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step3);">next_symbol</td>
-              <td id="next_symbol"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step3);">next_move</td>
-              <td id="next_move"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step4);">subst1</td>
-              <td id="subst1"></td>
-            </tr>
-            <tr>
-              <td align="right" style="color:var(--step5);">subst2</td>
-              <td id="subst2"></td>
-            </tr>
-            <tr>
-              <td align="right">steps</td>
-              <td id="steps"></td>
-            </tr>
-          </tbody>
-        </table>
-      </fieldset>
-      <fieldset>
-        <legend>log</legend>
-        <textarea id="log" readonly>
-        </textarea>
-      </fieldset>
-    </main>
-    <footer>
-      Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI<br/>
-      <a href="https://github.com/PUC-Behring-Institute-for-AI/umllm">
-        github.com/PUC-Behring-Institute-for-AI/umllm</a>
-    </footer>
   </body>
 </html>

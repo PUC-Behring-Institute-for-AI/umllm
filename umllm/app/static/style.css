@@ -1,5 +1,5 @@
 :root {
-    --font: "Adwaita Mono", monospace;
+    --font: sans-serif;
     --fg-color: #000;
     --bg-color: #fff;
     --em-color: #f00;
@@ -16,71 +16,106 @@
     --step5: black;
     --step6: black;
 }
+
 html {
     background-color: var(--bg-color);
     color: var(--fg-color);
     font-family: var(--font);
 }
-main {
-    max-width: 40em;
-    margin: auto;
+
+body {
+    margin: .5em;
+    padding: 0;
 }
-footer {
-    text-align: center;
-    font-size: 75%;
+
+main {
+    flex: 1;
+}
+
+div.flex-container {
+    display: flex;
+    align-items: stretch;
+    flex-direction: row;
+}
+
+div.flex-container > div {
+    margin: .5em;
+    flex-grow: 1;
+}
+
+@media screen and (max-width: 600px) {
+    div.flex-container {
+        flex-direction: column;
+    }
+}
+
+#machine-panel {
+    min-width: 40%;
+}
+
+#log-panel {
+    min-width: 30%;
+}
+
+#copyright {
+    font-size: 8pt;
     line-height: 1.5;
     padding: 1em;
 }
+
 table {
     border-collapse: separate;
     border-spacing: .25em;
 }
+
 td {
     padding: 0 .25em;
     vertical-align: top;
 }
+
 button, input {
     font-family: var(--font);
 }
+
 fieldset {
     background-color: var(--bg-color);
     border: var(--box-color) 1px solid;
     color: var(--fg-color);
-    display: block;
-    margin: 1em;
-    padding: 1em;
 }
+
 legend {
-    background-color: var(--bg-color);
     border-style: none !important;
     padding: .3em;
 }
-#controls {
-    padding-top: 1em;
-    text-align: center;
-}
+
 #state, #symbol {
     color: var(--step1);
 }
+
 #left_symbol {
     color: var(--step2);
 }
+
 #next_state, #next_symbol, #next_move {
     color: var(--step3);
 }
+
 #subst1 {
     color: var(--step4);
 }
+
 #subst2 {
     color: var(--step5);
 }
+
 #work {
     color: var(--step6);
 }
+
 #log {
     border-style: none;
-    width: 100%;
-    height: 8em;
-    resize: none;
+    min-height: 20em;
     overflow: auto;
+    resize: true;
+    width: 100%;
 }
