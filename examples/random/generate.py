@@ -2,10 +2,15 @@
 # Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI
 # SPDX-License-Identifier: Apache-2.0
 
+import itertools
 import pathlib
+import re
 
 import click
 import umllm
+import typing_extensions as ty
+
+_re_digest: ty.Final[re.Pattern[str]] = re.compile(r'^.*-([a-f0-9]+)\.txt$')
 
 
 @click.command()
@@ -29,34 +34,62 @@ import umllm
     default=10,
     help='Length of the work tape.')
 @click.option(
-    '--min-cycles',
+    '--cycles',
     type=int,
-    default=0,
-    help='Minimum number of cycles.')
+    default=10,
+    help='Number of cycles.')
 @click.option(
-    '--max-cycles',
-    type=int,
-    required=False,
-    help='Maximum number of cycles.')
-def main(
+    '--preset',
+    is_flag=True,
+    default=False,
+    help='Preset generation.')
+def generate(
         n: int,
         states: int,
         symbols: int,
         work: int,
-        min_cycles: int,
-        max_cycles: int | None
+        cycles: int,
+        preset: bool
 ) -> None:
+    if preset:
+        Qs = (2, 16, 32)
+        Ss = (2, 16, 32)
+        Ws = (8, 16, 32, 64)
+        Cs = range(5, 105, 5)
+        prod = list(itertools.product(Qs, Ss, Ws, Cs))
+        for i, (q, s, w, c) in enumerate(prod, 1):
+            print(f'# {i}/{len(prod)}')
+            seen = set(pathlib.Path('.').glob(
+                f'Q{q:02d}-S{s:02d}-W{w:02d}-C{c:02d}-*.txt'))
+            if len(seen) < 5:
+                _generate(5 - len(seen), q, s, w, c)
+    else:
+        _generate(n, states, symbols, work, cycles)
+
+
+def _generate(
+        n: int,
+        states: int,
+        symbols: int,
+        work: int,
+        cycles: int,
+) -> None:
+    seen = {_re_digest.match(p.name).group(1)
+            for p in pathlib.Path('.').glob('Q*-S*-W*-C*-*.txt')}
+    Q, S, W, C = states, symbols, work, cycles
     while n > 0:
-        um = umllm.UM.random(
-            states, symbols, work, min_cycles, max_cycles)
-        path = pathlib.Path(f'{um.digest()}.txt')
-        if path.exists():
+        um = umllm.UM.random(Q, S, W, C, C)
+        digest = um.digest()
+        if digest in seen:
+            click.echo(f'skipping {digest}')
             continue
+        path = pathlib.Path(
+            f'Q{Q:02d}-S{S:02d}-W{W:02d}-C{C:02d}-{digest}.txt')
         with open(path, 'wt', encoding='utf-8') as fp:
-            print('#', states, symbols, work, min_cycles, max_cycles,
-                  file=fp)
+            print('# Q%d S%d W%d C%d %s' % (Q, S, W, C, digest), file=fp)
             print(um.dump(), file=fp)
+        click.echo(f'wrote {path}')
         n -= 1
 
 if __name__ == '__main__':
-    main()
+    generate()
