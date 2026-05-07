@@ -63,11 +63,6 @@ def flask(debug: bool, port: int) -> None:
 
 @cli.command(help='Start interactive shell.')
 @click.option(
-    '--input',
-    type=str,
-    required=False,
-    help='UM input (override).')
-@click.option(
     '--llm-model',
     type=str,
     default='gpt-5.4',
@@ -108,7 +103,6 @@ def flask(debug: bool, port: int) -> None:
     default=False,
     help='Be verbose.')
 def shell(
-        input: str | None,
         llm_model: str,
         llm_provider: str,
         llm_seed: int,
@@ -119,50 +113,71 @@ def shell(
         verbose: bool
 ) -> None:
     um: UM | None = None
-
-    def reload() -> None:
-        if load:
-            nonlocal um
-            um = _load(
-                load,
-                input=input,
-                model=llm_model,
-                provider=llm_provider,
-                seed=llm_seed,
-                temperature=llm_temperature,
-                truncate=llm_truncate,
-                type=type)
     if verbose:
         logging.basicConfig(level=logging.INFO)
-    reload()
+    if load:
+        um = _load(
+            load,
+            model=llm_model,
+            provider=llm_provider,
+            seed=llm_seed,
+            temperature=llm_temperature,
+            truncate=llm_truncate,
+            type=type)
     while True:
         try:
-            res = _input()
+            res = _input('> ')
         except (EOFError, OSError):
             sys.exit(0)
         for cmd, *args in _parse(res):
             if cmd == '?' or 'help'.startswith(cmd):
                 click.echo('''\
-(h)elp           display this help
-(q)uit           quit
+(h)elp                  show this help
+(q)uit                  quit
 
-(d)ump           dump UM contents
-(l)oad FILE      load UM from file
+(d)ump                  show UM contents
+(l)oad FILE             load UM from FILE
+(s)ave FILE             save UM to FILE
+(g)en N M W [MIN [MAX]] generate random UM with N states, M symbols,
+                        work of size W that runs in [MIN, MAX] cycles
 
-(r)un [FUEL]     run UM until it halts or FUEL runs out
-(c)ycle          cycle UM once
-(n)ext           step UM once
-(p)rev           revert last step
-(R)eset          revert all steps
+(r)un [FUEL]           run UM until it halts or FUEL runs out
+(c)ycle                cycle UM once
+(n)ext                 step UM once
+(p)rev                 revert last step
+(R)eset                revert all steps
+(w)ork TEXT            override work tape with TEXT
                 ''')
             elif 'quit'.startswith(cmd):
+                click.echo('bye')
                 sys.exit(0)
             elif 'load'.startswith(cmd):
                 if not args:
                     _error('missing FILE argument')
                     continue
-                load = pathlib.Path(args[0])
-                reload()
+                um = _load(
+                    pathlib.Path(args[0]),
+                    model=llm_model,
+                    provider=llm_provider,
+                    seed=llm_seed,
+                    temperature=llm_temperature,
+                    truncate=llm_truncate,
+                    type=type)
+            elif 'gen'.startswith(cmd):
+                if len(args) < 3:
+                    _error('missing N (states) or M (symbols) or W (work)')
+                    continue
+                n, m, w, *rest = map(int, args)
+                min_cycles = rest[0] if len(rest) > 0 else None
+                max_cycles = rest[1] if len(rest) > 1 else None
+                um = _gen(
+                    n, m, w, min_cycles, max_cycles,
+                    model=llm_model,
+                    provider=llm_provider,
+                    seed=llm_seed,
+                    temperature=llm_temperature,
+                    truncate=llm_truncate,
+                    type=type)
             else:
                 if not um:
                     _error('no UM loaded')
@@ -184,6 +199,22 @@ def shell(
                         um.prev()
                     elif 'Reset'.startswith(cmd):
                         um.reset()
+                    elif 'save'.startswith(cmd):
+                        if not args:
+                            _error('missing FILE argument')
+                            continue
+                        if args[0] == '-':
+                            fp = sys.stdout
+                        else:
+                            fp = open(args[0], 'wt', encoding='utf-8')
+                        print(um.dump(), file=fp)
+                        if fp != sys.stdout:
+                            fp.close()
+                    elif 'work'.startswith(cmd):
+                        if not args:
+                            _error('missing TEXT argument')
+                            continue
+                        um.work = args[0]
                     else:
                         _error('unknown command "%s", try "help"', cmd)
                 except um.Error as err:
@@ -193,10 +224,10 @@ def shell(
 def _load(path: pathlib.Path, **kwargs: ty.Any) -> UM:
     ty = kwargs.get('type', 'um')
     if ty == 'um':
-        um: UM = UM.load_file(path)
+        return UM.load_file(path)
     elif ty == 'llm':
         from .llm import UMLLM
-        um = UMLLM.load_file(
+        return UMLLM.load_file(
             path,
             model=kwargs.get('model'),
             provider=kwargs.get('provider'),
@@ -205,10 +236,34 @@ def _load(path: pathlib.Path, **kwargs: ty.Any) -> UM:
             truncate=kwargs.get('truncate'))
     else:
         raise RuntimeError('should not get here')
-    input = kwargs.get('input')
-    if input:
-        um.work = input
-    return um
+
+
+def _gen(
+        num_states: int,
+        num_symbols: int,
+        length: int,
+        min_cycles: int | None = None,
+        max_cycles: int | None = None,
+        **kwargs: ty.Any
+) -> UM:
+    um: UM = UM.random(
+        num_states, num_symbols, length, min_cycles, max_cycles)
+    ty = kwargs.get('type', 'um')
+    if ty == 'um':
+        return um
+    elif ty == 'llm':
+        from .llm import UMLLM
+        return UMLLM(
+            um.machine,
+            um.halt,
+            um.work,
+            model=kwargs.get('model'),
+            provider=kwargs.get('provider'),
+            seed=kwargs.get('seed'),
+            temperature=kwargs.get('temperature'),
+            truncate=kwargs.get('truncate'))
+    else:
+        raise RuntimeError('should not get here')
 
 
 def _parse(input: str) -> ty.Iterator[ty.Iterable[str]]:

@@ -187,11 +187,13 @@ class UM:
             cls,
             num_states: int,
             num_symbols: int,
-            length: int = 0,
-            min_cycles: int = 0,
+            length: int | None = None,
+            min_cycles: int | None = None,
             max_cycles: int | None = None
     ) -> ty.Self:
         um: UM | None = None
+        length = length if length is not None else 0
+        min_cycles = min_cycles if min_cycles is not None else 0
         assert min_cycles >= 0
         max_cycles =\
             max_cycles if max_cycles is not None else cls._default_run_fuel
@@ -200,7 +202,7 @@ class UM:
             um = cls(cls.random_machine_tape(num_states, num_symbols),
                      cls.random_halt_tape(num_states),
                      cls.random_work_tape(num_symbols, num_symbols, length))
-            if min_cycles == 0:
+            if length == 0 or min_cycles == 0:
                 return um
             else:
                 um.run(max_cycles)
@@ -323,6 +325,9 @@ class UM:
 
     def __str__(self) -> str:
         t = self.frame.to_dict()
+        t['cycles'] = self.cycles
+        t['history'] = len(self._history)
+        t['halted'] = self.halted()
         tab = max(*map(len, t.keys()))
 
         def it() -> ty.Iterator[str]:
@@ -337,6 +342,12 @@ class UM:
                                      f'({q0}, {s0}) ↦ ({q1}, {s1}, {d})')
                     yield ''
         return '\n'.join(it())
+
+    def digest(self) -> str:
+        """Computes a digest using UM's machine and halt tapes."""
+        import hashlib
+        return hashlib.sha256((self.machine + self.halt).encode(
+            'utf-8')).hexdigest()
 
     @property
     def frame(self) -> Frame:
@@ -473,9 +484,18 @@ class UM:
         """Converts UM to JSON string."""
         return json.dumps(self.to_dict(), **kwargs)
 
+    def dump(self) -> str:
+        """Dumps UM machine, halt, and work to string."""
+        return f'{self.machine}\n\n{self.halt}\n\n{self.work[1:-1]}'
+
+    def dump_file(self, path: pathlib.Path | str) -> None:
+        """Dumps UM machine, halt, and work to file."""
+        with open(pathlib.Path(path), 'wt', encoding='utf-8') as fp:
+            print(self.dump(), file=fp)
+
     @classmethod
     def load(cls, s: str, **kwargs: ty.Any) -> ty.Self:
-        """Loads UM from string."""
+        """Loads UM machine, halt, and work from string."""
         machine: str = ''
         halt: str = ''
         work: str = ''
@@ -497,6 +517,7 @@ class UM:
 
     @classmethod
     def load_file(cls, path: pathlib.Path | str, **kwargs: ty.Any) -> ty.Self:
+        """Loads UM machine, halt, and work from file."""
         with open(pathlib.Path(path), 'rt', encoding='utf-8') as fp:
             return cls.load(fp.read(), **kwargs)
 
