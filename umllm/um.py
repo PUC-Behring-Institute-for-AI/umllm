@@ -201,7 +201,7 @@ class UM:
         while True:
             um = cls(cls.random_machine_tape(num_states, num_symbols),
                      cls.random_halt_tape(num_states),
-                     cls.random_work_tape(num_symbols, num_symbols, length))
+                     cls.random_work_tape(num_states, num_symbols, length))
             if length == 0 or min_cycles == 0:
                 return um
             else:
