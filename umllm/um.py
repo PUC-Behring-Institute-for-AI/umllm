@@ -187,12 +187,26 @@ class UM:
             cls,
             num_states: int,
             num_symbols: int,
-            length: int = 0
+            length: int = 0,
+            min_cycles: int = 0,
+            max_cycles: int | None = None
     ) -> ty.Self:
-        return cls(
-            cls.random_machine_tape(num_states, num_symbols),
-            cls.random_halt_tape(num_states),
-            cls.random_work_tape(num_symbols, num_symbols, length))
+        um: UM | None = None
+        assert min_cycles >= 0
+        max_cycles =\
+            max_cycles if max_cycles is not None else cls._default_run_fuel
+        assert max_cycles >= min_cycles
+        while True:
+            um = cls(cls.random_machine_tape(num_states, num_symbols),
+                     cls.random_halt_tape(num_states),
+                     cls.random_work_tape(num_symbols, num_symbols, length))
+            if min_cycles == 0:
+                return um
+            else:
+                um.run(max_cycles)
+                assert um.cycles <= max_cycles
+                if um.halted() and um.cycles >= min_cycles:
+                    return um.reset()
 
     class Error(Exception):
         """UM error."""
@@ -562,9 +576,13 @@ class UM:
         self._history = self._history[:1]
         return self
 
-    def run(self, fuel: int = 10) -> ty.Self:
+    _default_run_fuel: ty.ClassVar[int] = 100
+
+    def run(self, fuel: int | None = None) -> ty.Self:
         """Executes step cycles until halting state is reached or fuel (in
         number of cycles) is exhausted."""
+        fuel = fuel if fuel is not None else self._default_run_fuel
+        assert fuel is not None
         while True:
             if self.halted():
                 _logger.info('[run] halted')
