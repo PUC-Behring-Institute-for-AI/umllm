@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import json
 import logging
 import pathlib
+import random
 import re
 
 import typing_extensions as ty
@@ -117,6 +119,80 @@ class UM:
                 return tape
         else:
             raise ValueError(f'bad tape: {value}')
+
+    @classmethod
+    def random_Q(cls, num_states: int) -> Tape:
+        """Generates a random tape containing a single state."""
+        return f'{cls.SYM_Q}{random.randrange(0, num_states):b}'
+
+    @classmethod
+    def random_S(cls, num_symbols: int) -> Tape:
+        """Generates a random tape containing a single symbol."""
+        return f'{cls.SYM_S}{random.randrange(0, num_symbols):b}'
+
+    @classmethod
+    def random_S_or_B(cls, num_symbols: int) -> Tape:
+        """Generates a random tape containing a single symbol or blank."""
+        i = random.randint(0, num_symbols)
+        if i < num_symbols:
+            return f'{cls.SYM_S}{i:b}'
+        else:
+            return cls.SYM_B
+
+    @classmethod
+    def random_move(cls) -> Tape:
+        """Generates a random tape containing either "L" or "R"."""
+        return cls.SYM_L if bool(random.randint(0, 1)) else cls.SYM_R
+
+    @classmethod
+    def random_machine_tape(cls, num_states: int, num_symbols: int) -> Tape:
+        """Generates a random machine tape."""
+        def it() -> ty.Iterator[str]:
+            for q0, s0 in itertools.product(
+                    range(num_states), range(num_symbols + 1)):
+                yield f'{cls.SYM_Q}{q0:b}'
+                if s0 < num_symbols:
+                    yield f'{cls.SYM_S}{s0:b}'
+                else:
+                    yield cls.SYM_B
+                yield cls.random_Q(num_states)
+                yield cls.random_S_or_B(num_symbols)
+                yield cls.random_move()
+        return cls.check_tape(''.join(it()))
+
+    @classmethod
+    def random_halt_tape(cls, num_states: int) -> Tape:
+        """Generates a random halt tape."""
+        return cls.random_Q(num_states)
+
+    @classmethod
+    def random_work_tape(
+            cls,
+            num_states: int,
+            num_symbols: int,
+            length: int
+    ) -> Tape:
+        """Generates a random work tape."""
+        def it() -> ty.Iterator[str]:
+            if length:
+                head_position = random.randrange(length)
+                for pos in range(length):
+                    if pos == head_position:
+                        yield cls.random_Q(num_states)
+                    yield cls.random_S(num_symbols)
+        return cls.check_tape(''.join(it()), pad=True)
+
+    @classmethod
+    def random(
+            cls,
+            num_states: int,
+            num_symbols: int,
+            length: int = 0
+    ) -> ty.Self:
+        return cls(
+            cls.random_machine_tape(num_states, num_symbols),
+            cls.random_halt_tape(num_states),
+            cls.random_work_tape(num_symbols, num_symbols, length))
 
     class Error(Exception):
         """UM error."""
