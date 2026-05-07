@@ -85,10 +85,10 @@ class UMLLM(UM):
     #: The human prompt.
     human_prompt: PromptTemplate
 
-    #: Whether to provide a fresh substitution task to the LLM at each cycle.
-    fresh_subst: bool
+    #: Limit on the length of the messages list.
+    truncate: int | None
 
-    #: The messages to send to LLM.
+    #: The messages exchanged with the LLM.
     messages: list[BaseMessage] | None
 
     #: Accumulated usage metadata.
@@ -109,10 +109,10 @@ class UMLLM(UM):
             subst2: Tape | None = None,
             steps: int | None = None,
             _empty: bool | None = None,
+            llm: BaseChatModel | None = None,
             system_prompt: PromptTemplate | str | None = None,
             human_prompt: PromptTemplate | str | None = None,
-            fresh_subst: bool | None = None,
-            llm: BaseChatModel | None = None,
+            truncate: int | None = None,
             **kwargs: ty.Any
     ) -> None:
         super().__init__(
@@ -129,12 +129,13 @@ class UMLLM(UM):
             subst2,
             steps,
             _empty)
+        _logger.info('[init] new LLM: %s', kwargs)
         self.llm = self._make_llm(llm, **kwargs)
         self.system_prompt = self._check_prompt_template(
             system_prompt, self._default_system_prompt)
         self.human_prompt = self._check_prompt_template(
             human_prompt, self._default_human_prompt)
-        self.fresh_subst = bool(fresh_subst)
+        self.truncate = truncate
         self.messages = None   # initialized at the first step
         self.usage_metadata = collections.defaultdict(int)
 
@@ -144,7 +145,10 @@ class UMLLM(UM):
     @ty.override
     def step6(self) -> ty.Self:
         # push system/human messages
-        if self.messages is None or self.fresh_subst:
+        if (self.messages and self.truncate is not None
+                and len(self.messages) > self.truncate):
+            self.messages = None
+        if self.messages is None:
             self.messages = [
                 SystemMessage(content=self.system_prompt.format(
                     SYM_Q=self.SYM_Q,
@@ -183,7 +187,7 @@ class UMLLM(UM):
             assert len(self._history) > 1
             self._history.pop()  # revert to the previous frame
             raise self.Error(f'''\
-bad work:
+bad work at cycle {self.cycles}:
 * before step6:              {prev_work}
 * after step6, expected:     {next_work}
 * after step6, got from LLM: {llm_work}''')
