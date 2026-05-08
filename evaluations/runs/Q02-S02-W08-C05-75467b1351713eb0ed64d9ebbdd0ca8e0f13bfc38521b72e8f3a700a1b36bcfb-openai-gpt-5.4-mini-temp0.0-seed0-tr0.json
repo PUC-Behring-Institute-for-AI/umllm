@@ -1,0 +1,23 @@
+{
+  "machine_file": "machines/Q02-S02-W08-C05-75467b1351713eb0ed64d9ebbdd0ca8e0f13bfc38521b72e8f3a700a1b36bcfb.txt",
+  "machine_dump": "Q0S0Q0S0LQ0S1Q1.RQ0.Q1S0LQ1S0Q0.RQ1S1Q1S1LQ1.Q1S0L\n\nQ1\n\nS1.Q1S0S0S0S0S0S0",
+  "num_states": 2,
+  "num_symbols": 2,
+  "work_length": 8,
+  "cycles_until_halt": 5,
+  "digest": "75467b1351713eb0ed64d9ebbdd0ca8e0f13bfc38521b72e8f3a700a1b36bcfb",
+  "provider": "openai",
+  "model": "gpt-5.4-mini",
+  "temperature": 0.0,
+  "seed": 0,
+  "truncate": 0,
+  "messages": [],
+  "cycles": 0,
+  "error": "bad work at cycle 0:\n* before step6:              .S1S1S0S0S0Q0S0S0S0.\n* after step6, expected:     .S1S1S0S0Q0S0S0S0S0.\n* after step6, got from LLM: .S1S1S0S0S0Q0S0S0.",
+  "halted": null,
+  "usage_metadata": {
+    "input_tokens": 1733,
+    "output_tokens": 518,
+    "total_tokens": 2251
+  }
+}

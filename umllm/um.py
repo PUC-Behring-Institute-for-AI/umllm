@@ -521,6 +521,64 @@ class UM:
         with open(pathlib.Path(path), 'rt', encoding='utf-8') as fp:
             return cls.load(fp.read(), **kwargs)
 
+    def get_machine_states(self) -> ty.Set[str]:
+        """Gets the set of distinct states in occurring machine tape."""
+        def it() -> ty.Iterator[str]:
+            for (q0, _, q1, _, _) in self._parse_machine():  # type: ignore
+                yield q0
+                yield q1
+        return frozenset(it())  # type: ignore
+
+    def get_machine_symbols(
+            self,
+            including_blanks: bool = True
+    ) -> ty.Set[str]:
+        """Gets the set of distinct symbols occurring in machine tape."""
+        def it() -> ty.Iterator[str]:
+            for (_, s0, _, s1, _) in self._parse_machine():  # type: ignore
+                if s0 != self.SYM_B or including_blanks:
+                    yield s0
+                if s1 != self.SYM_B or including_blanks:
+                    yield s1
+        return frozenset(it())  # type: ignore
+
+    def get_work_state(self) -> str:
+        """Gets the state occurring in work tape."""
+        _, q, _ = self._parse_work()
+        return q
+
+    def iterate_work_symbols(self) -> ty.Iterator[str]:
+        """Iterates over each symbol occurring in work."""
+        l, _, r = self._parse_work()
+        _re = re.compile(rf'^({self._reSn})(.*)$')
+        input = l + r
+        while input:
+            m = _re.match(input)
+            if m is None:
+                raise self.Error(f'bad work: {self.work}')
+            sym, input = m.groups()
+            yield sym
+
+    def count_machine_states(self) -> int:
+        """Counts the number of distinct states in machine tape."""
+        return len(self.get_machine_states())
+
+    def count_machine_symbols(self, including_blanks: bool = True) -> int:
+        """Counts the number of distinct symbols in machine tape."""
+        return len(self.get_machine_symbols(including_blanks))
+
+    def work_length(
+            self,
+            including_delimiting_blanks: bool = True
+    ) -> int:
+        """Counts the number of symbols or blanks in work (including the
+        delimiting blanks)."""
+        length = len(list(self.iterate_work_symbols()))
+        if including_delimiting_blanks:
+            return length
+        else:
+            return length - 2
+
     @property
     def _re09(self) -> str:
         return '[0-9]'

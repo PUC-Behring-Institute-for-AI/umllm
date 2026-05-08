@@ -1,1 +1,1 @@
-Consider the initial configuration in which the content of "Machine" is "{{MACHINE}}" and the content of "Work" is "{{WORK}}".  Run one transition (steps 1 to 6) of the simulated Turing machine, display the contents of the "Work" tape after the transition, and wait for my command.
+Consider the initial configuration in which the content of the "Machine" tape is "{{MACHINE}}" and the content of the "Work" tape is "{{WORK}}".  Run one transition (steps 1 to 6) of the simulated Turing machine, display the contents of the "Work" tape after the transition, and wait for my command.
