@@ -4,6 +4,7 @@
 
 import itertools
 import json
+import logging
 import pathlib
 import re
 
@@ -14,13 +15,21 @@ import typing_extensions as ty
 
 MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
     ('openai', 'gpt-5.4'),
-    ('openai', 'gpt-5.4-mini')]
+    # ('openai', 'gpt-5.4-mini'),
+]
+
+PROMPT: ty.Final[ty.Sequence[tuple[str, str, str]]] = [
+    ('detailed-en', 'detailed-en-system.txt', 'detailed-en-human.txt'),
+    ('simple-pt', 'simple-pt-system.txt', 'simple-pt-human.txt'),
+]
 
 TEMPERATURE: ty.Final[ty.Sequence[float]] = [0.]
 
 SEED: ty.Final[ty.Sequence[int]] = [0]
 
 TRUNCATE: ty.Final[ty.Sequence[int | None]] = [None, 0]
+
+logging.basicConfig(filename='evaluate.log', level=logging.INFO)
 
 
 @click.command()
@@ -43,14 +52,28 @@ def evaluate(
         tqdm = (lambda x: x)
     outdir.mkdir(parents=True, exist_ok=True)
     prod = list(itertools.product(
-        path, MODEL_PROVIDER, TEMPERATURE, SEED, TRUNCATE))
-    for p, (provider, model), temp, seed, truncate in tqdm(prod):
+        path, MODEL_PROVIDER, PROMPT, TEMPERATURE, SEED, TRUNCATE))
+    for p, (provider, model), prompt, temp, seed, truncate in tqdm(prod):
         tr = f'-tr{truncate}' if truncate is not None else ''
-        filename =\
-            p.stem + f'-{provider}-{model}-temp{temp}-seed{seed}{tr}.json'
+        filename = (
+            p.stem
+            + f'-{provider}'
+            + f'-{model}'
+            + f'-{prompt[0]}'
+            + f'-temp{temp}'
+            + f'-seed{seed}'
+            + f'{tr}.json')
         out = outdir / filename
         if not out.exists():
-            _evaluate(p, out, provider, model, temp, seed, truncate)
+            _evaluate(
+                machine=p,
+                outfile=out,
+                provider=provider,
+                model=model,
+                prompt=prompt,
+                temperature=temp,
+                seed=seed,
+                truncate=truncate)
         else:
             print('skipping', out)
 
@@ -64,6 +87,7 @@ def _evaluate(
         outfile: pathlib.Path,
         provider: str,
         model: str,
+        prompt: tuple[str, str, str],
         temperature: float,
         seed: int,
         truncate: int | None
@@ -87,10 +111,14 @@ def _evaluate(
     y = (yQ, yS, yW, yC, yD)
     if x != y:
         raise RuntimeError(f'machine spec mismatch: {x} != {y}')
+    system_prompt = umllm.UMLLM._load_prompt_template(prompt[1])
+    human_prompt = umllm.UMLLM._load_prompt_template(prompt[2])
     llm = umllm.UMLLM.load_file(
         machine,
         provider=provider,
         model=model,
+        system_prompt=system_prompt,
+        human_prompt=human_prompt,
         temperature=temperature,
         seed=seed,
         truncate=truncate)
@@ -107,6 +135,7 @@ def _evaluate(
         'digest': xD,
         'provider': provider,
         'model': model,
+        'prompt': prompt[0],
         'temperature': temperature,
         'seed': seed,
         'truncate': truncate,
