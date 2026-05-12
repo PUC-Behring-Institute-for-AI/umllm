@@ -58,8 +58,8 @@ def generate(
         preset: bool
 ) -> None:
     if preset:
-        Qs = (2, 16, 32)
-        Ss = (2, 16, 32)
+        Qs = (2, 8, 16, 32)
+        Ss = (2, 8, 16, 32)
         Ws = (8, 16, 32, 64, 128)
         Cs = range(5, 105, 5)
         prod = list(itertools.product(Qs, Ss, Ws, Cs))
