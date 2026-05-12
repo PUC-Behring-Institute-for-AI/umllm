@@ -134,7 +134,8 @@ class UMLLM(UM):
             steps,
             _empty)
         _logger.info('[init] new LLM: %s', kwargs)
-        self.llm = self._make_llm(llm, **kwargs)
+        self._refresh_llm = (lambda: self._make_llm(llm, **kwargs))
+        self.llm = self._refresh_llm()
         self.system_prompt = self._check_prompt_template(
             system_prompt, self._default_system_prompt)
         self.human_prompt = self._check_prompt_template(
@@ -151,6 +152,8 @@ class UMLLM(UM):
         # push system/human messages
         if (self.messages and self.truncate is not None
                 and len(self.messages) > self.truncate):
+            _logger.info('truncating messages to %d', self.truncate)
+            self.llm = self._refresh_llm()
             self.messages = None
         if self.messages is None:
             self.messages = [
