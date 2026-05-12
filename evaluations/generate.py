@@ -2,7 +2,6 @@
 # Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI
 # SPDX-License-Identifier: Apache-2.0
 
-import gzip
 import itertools
 import pathlib
 import re
@@ -96,7 +95,7 @@ def _generate(
             continue
         path = outdir / pathlib.Path(
             f'Q{Q:02d}-S{S:02d}-W{W:02d}-C{C:02d}-{digest}.txt')
-        with gzip.open(path, 'wt', encoding='utf-8') as fp:
+        with open(path, 'wt', encoding='utf-8') as fp:
             print('# Q%d S%d W%d C%d %s' % (Q, S, W, C, digest), file=fp)
             print(um.dump(), file=fp)
         click.echo(f'wrote {path}')
