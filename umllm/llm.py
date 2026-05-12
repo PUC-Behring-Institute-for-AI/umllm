@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import collections
+import pathlib
 import re
 
 import typing_extensions as ty
@@ -30,22 +31,25 @@ class UMLLM(UM):
 
     #: The default system prompt.
     _default_system_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('system.txt')
+        _load_prompt_template('detailed-en-system.txt')
 
     #: The default human prompt.
     _default_human_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('human.txt')
+        _load_prompt_template('detailed-en-human.txt')
 
     @classmethod
     def _check_prompt_template(
             cls,
-            prompt_template: PromptTemplate | str | None,
+            prompt_template: PromptTemplate | pathlib.Path | str | None,
             default: PromptTemplate
     ) -> PromptTemplate:
         if prompt_template is None:
             return default
         elif isinstance(prompt_template, PromptTemplate):
             return prompt_template
+        elif isinstance(prompt_template, pathlib.Path):
+            return PromptTemplate.from_file(
+                prompt_template, template_format='mustache')
         else:
             return PromptTemplate.from_template(
                 prompt_template, format='mustache')
@@ -110,8 +114,8 @@ class UMLLM(UM):
             steps: int | None = None,
             _empty: bool | None = None,
             llm: BaseChatModel | None = None,
-            system_prompt: PromptTemplate | str | None = None,
-            human_prompt: PromptTemplate | str | None = None,
+            system_prompt: PromptTemplate | pathlib.Path | str | None = None,
+            human_prompt: PromptTemplate | pathlib.Path | str | None = None,
             truncate: int | None = None,
             **kwargs: ty.Any
     ) -> None:

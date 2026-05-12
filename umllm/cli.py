@@ -68,6 +68,16 @@ def flask(debug: bool, port: int) -> None:
     default='gpt-5.4',
     help='LLM model to use.')
 @click.option(
+    '--llm-prompt-human',
+    type=pathlib.Path,
+    required=False,
+    help='LLM human prompt to use.')
+@click.option(
+    '--llm-prompt-system',
+    type=pathlib.Path,
+    required=False,
+    help='LLM system prompt to use.')
+@click.option(
     '--llm-provider',
     type=str,
     default='openai',
@@ -104,6 +114,8 @@ def flask(debug: bool, port: int) -> None:
     help='Be verbose.')
 def shell(
         llm_model: str,
+        llm_prompt_human: str | None,
+        llm_prompt_system: str | None,
         llm_provider: str,
         llm_seed: int,
         llm_temperature: float,
@@ -120,6 +132,8 @@ def shell(
             load,
             model=llm_model,
             provider=llm_provider,
+            human_prompt=llm_prompt_human,
+            system_prompt=llm_prompt_system,
             seed=llm_seed,
             temperature=llm_temperature,
             truncate=llm_truncate,
@@ -159,6 +173,8 @@ def shell(
                     pathlib.Path(args[0]),
                     model=llm_model,
                     provider=llm_provider,
+                    human_prompt=llm_prompt_human,
+                    system_prompt=llm_prompt_system,
                     seed=llm_seed,
                     temperature=llm_temperature,
                     truncate=llm_truncate,
@@ -231,6 +247,8 @@ def _load(path: pathlib.Path, **kwargs: ty.Any) -> UM:
             path,
             model=kwargs.get('model'),
             provider=kwargs.get('provider'),
+            human_prompt=kwargs.get('human_prompt'),
+            system_prompt=kwargs.get('system_prompt'),
             seed=kwargs.get('seed'),
             temperature=kwargs.get('temperature'),
             truncate=kwargs.get('truncate'))

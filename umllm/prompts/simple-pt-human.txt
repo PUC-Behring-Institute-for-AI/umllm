@@ -1,0 +1,7 @@
+Considere a seguinte configuração inicial:
+
+Conteúdo da fita "Work": "{{WORK}}"
+
+Conteúdo da fita "Machine": "{{MACHINE}}"
+
+Rode uma transição da máquina de Turing simulada, mostre o conteúdo da fita "Work" após a transição, e aguarde o meu comando.

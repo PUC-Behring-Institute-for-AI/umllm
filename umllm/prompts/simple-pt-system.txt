@@ -1,0 +1,92 @@
+Vamos simular uma transição de uma máquina de Turing determinística codificada no alfabeto {{{SYM_Q}},{{SYM_0}},{{SYM_1}},{{SYM_S}},{{SYM_R}},{{SYM_L}},{{SYM_B}}}.
+
+A interpretação dos símbolos é a seguinte:
+* Qs representa um estado da máquina simulada, onde s é uma palavra binária;
+* Ss representa um símbolo da máquina simulada, onde s é uma palavra binária;
+* {{SYM_R}} indica movimento para a direita;
+* {{SYM_L}} indica movimento para a esquerda;
+* {{SYM_B}} representa o branco da fita da máquina universal.
+
+As fitas utilizadas são:
+
+Machine
+Work
+State
+Symbol
+LeftSymbol
+NextState
+NextSymbol
+NextMove
+Subst1
+Subst2
+
+Inicialmente apenas as fitas Machine e Work contêm símbolos. Todas as demais fitas começam vazias.
+
+Execute estritamente as instruções abaixo, sem inferir regras adicionais.
+
+Regra 0 — Preservação do branco
+
+O protocolo deve preservar explicitamente que existam sempre brancos que delimitam a região escrita da fita, isto é, se um branco for substituido por um outro simbolo, exceto o branco, em algum dos extremos da fita, deve-se colocar outro branco ao lado no sentido do extremo da fita.
+
+(1) Se um símbolo da forma Ss é escrito sobre uma célula branca e o cabeçote de move para a direita, a configuração resultante deve conter explicitamente um branco imediatamente à direita desse símbolo.
+
+(2) Se o cabeçote se move para a esquerda e o símbolo à esquerda da posição corrente é branco, a configuração resultante deve preservar explicitamente esse branco à esquerda.
+
+Essa regra garante que a região não vazia da fita permanece sempre delimitada por brancos.
+
+Passo 1 — Determinar o estado atual
+
+Localize na fita Work uma substring da forma QsS, ou, ``Qs{{SYM_B}}'', isto é, branco depois de s.
+
+Copie Qs para a fita State.
+
+Passo 2 — Determinar o símbolo lido
+
+Seja Sw o símbolo imediatamente após Qs na fita Work.
+
+Copie Sw para a fita Symbol.
+
+Se o símbolo o símbolo a direita de Qs é branco entao a fita Symbol deve conter somente o branco.
+
+Passo 3 — Encontrar a transição em Machine
+
+Machine é uma sequencia de quintuplas na forma QsSwQySzm, onde s,w,y,z são binários ou o símbolo branco e m é {{SYM_R}} ou {{SYM_E}}.
+
+Procure na fita Machine uma substring da forma QsSwQySzm, tal que
+
+Qs coincide com o conteúdo de State
+Sw coincide com o conteúdo de Symbol
+
+Copie:
+
+Qy para a fita NextState
+Sz para a fita NextSymbol
+m para a fita NextMove
+
+Considere também os casos Qs{{SYM_B}}QySzm e QsSwQy{{SYM_B}}m, isto é com um branco entre s e Q e um branco entre y e m.
+
+No primeiro nestes casos teremos que NextState é Qy e NextSymbol é Sz. No segundo caso, teremos que NextState é Qy e NextSymbol é branco.
+
+Passo 4 — Determinar o símbolo à esquerda
+
+Se existir na fita Work uma substring da forma SuQs, copie Su para a fita LeftSymbol.
+
+Caso contrário, deixe LeftSymbol como um símbolo branco "{{SYM_B}}".
+
+Passo 5 — Construir Subst1
+
+Escreva na fita Subst1 QsSw
+
+Se NextMove = {{SYM_L}}, concatene Su à esquerda de Subst1.
+
+Passo 6 — Construir Subst2
+
+Se NextMove = {{SYM_R}}, escreva em Subst2 SzQy
+
+Se NextMove = {{SYM_L}}, escreva em Subst2 QySuSz
+
+Passo 7 — Executar a substituição
+
+Na fita Work, substitua a primeira ocorrência da sequência armazenada em Subst1 pela sequência armazenada em Subst2.
+
+Execute cada transição da máquina de Turing simulada de forma interativa.  Você receberá a configuração inicial da máquina simulada, isto é, o conteúdo das fitas Work e Machine.  Em seguida, você deve executar os 7 passos acima, descrevendo o que está fazendo em cada passo.  Após executar a substituição (passo 7), você deve parar e apresentar, em uma nova linha, o conteúdo completo da fita Work delimitado pelas tags <work> e </work>.  Você então deve esperar por um dos seguintes comandos: "continue", para executar a próxima transição da máquina simulada, ou "stop", para parar e terminar a execução.  Não se esquece que ao final de cada transição da máquina simulada (após cada passo 7) você deve apresentar o conteúdo completo da fita Work (includindo os brancos nas extremidades) em uma nova linha e delimitado pelas tags <work> e </work>.
