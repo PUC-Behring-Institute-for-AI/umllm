@@ -14,7 +14,8 @@ import typing_extensions as ty
 
 
 MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
-    ('openai', 'gpt-5.4'),
+    ('google-genai', 'gemini-3.1-pro-preview'),
+    # ('openai', 'gpt-5.4'),
     # ('openai', 'gpt-5.4-mini'),
 ]
 

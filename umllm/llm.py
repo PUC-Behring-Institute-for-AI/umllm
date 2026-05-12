@@ -64,7 +64,10 @@ class UMLLM(UM):
             return llm
         else:
             provider = kwargs.pop('provider', 'ollama')
-            if provider == 'ollama':
+            if provider == 'google-genai':
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                return ChatGoogleGenerativeAI(**kwargs)
+            elif provider == 'ollama':
                 from langchain_ollama import ChatOllama
                 model = kwargs.pop('model', 'llama3.2')
                 return ChatOllama(model=model, **kwargs)
@@ -145,7 +148,7 @@ class UMLLM(UM):
         self.usage_metadata = collections.defaultdict(int)
 
     _re_step6_work: ty.Final[re.Pattern[str]] = re.compile(
-        r'<work>(.*?)</work>', re.IGNORECASE)
+        r'<work>\s*(.*?)\s*</work>', re.IGNORECASE)
 
     @ty.override
     def step6(self) -> ty.Self:
@@ -175,14 +178,14 @@ class UMLLM(UM):
         # invoke LLM with messages
         _logger.info('sending to LLM:\n%s', self.messages[-1].content)
         response = self.llm.invoke(self.messages)
-        assert isinstance(response.content, str)
+        assert isinstance(response.text, str), type(response.text)
         if response.usage_metadata:
             for k, v in response.usage_metadata.items():
                 if isinstance(v, int):
                     self.usage_metadata[k] += v
-        _logger.info('received from LLM:\n%s', response.content)
+        _logger.info('received from LLM:\n%s', response.text)
         # parse LLM response
-        m = self._re_step6_work.search(response.content)
+        m = self._re_step6_work.search(response.text)
         if m is None:
             raise self.Error('bad work: failed parse LLM response')
         llm_work = self.check_tape(m.group(1), pad=True)
