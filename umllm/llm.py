@@ -64,7 +64,10 @@ class UMLLM(UM):
             return llm
         else:
             provider = kwargs.pop('provider', 'ollama')
-            if provider == 'google-genai':
+            if provider == 'deepseek':
+                from langchain_deepseek import ChatDeepSeek
+                return ChatDeepSeek(**kwargs)
+            elif provider == 'google-genai':
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 return ChatGoogleGenerativeAI(**kwargs)
             elif provider == 'ollama':
