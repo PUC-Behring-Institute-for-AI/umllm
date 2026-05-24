@@ -1,4 +1,4 @@
-Vamos simular uma transição de uma máquina de Turing determinística codificada no alfabeto {{{SYM_Q}},{{SYM_0}},{{SYM_1}},{{SYM_S}},{{SYM_R}},{{SYM_L}},{{SYM_B}}}.
+Vamos simular uma transição de uma máquina de Turing determinística codificada num alfabeto contendo os símbolos "{{SYM_Q}}", "{{SYM_0}}", "{{SYM_1}}", "{{SYM_S}}", "{{SYM_R}}", "{{SYM_L}}", "{{SYM_B}}".
 
 A interpretação dos símbolos é a seguinte:
 * Qs representa um estado da máquina simulada, onde s é uma palavra binária;

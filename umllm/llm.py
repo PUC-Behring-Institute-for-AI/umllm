@@ -191,7 +191,10 @@ class UMLLM(UM):
         m = self._re_step6_work.search(response.text)
         if m is None:
             raise self.Error('bad work: failed parse LLM response')
-        llm_work = self.check_tape(m.group(1), pad=True)
+        try:
+            llm_work = self.check_tape(m.group(1), pad=True)
+        except ValueError as err:
+            raise self.Error(f'bad work: {err}')
         # check LLM response
         prev_work = self.work
         super().step6()
