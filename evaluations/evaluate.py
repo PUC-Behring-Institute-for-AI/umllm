@@ -15,9 +15,9 @@ import typing_extensions as ty
 
 MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
     ('deepseek', 'deepseek-v4-pro'),
-    # ('google-genai', 'gemini-3.1-pro-preview'),
-    # ('openai', 'gpt-5.4'),
-    # ('openai', 'gpt-5.4-mini'),
+    ('google-genai', 'gemini-3.1-pro-preview'),
+    ('openai', 'gpt-5.4'),
+    ('openai', 'gpt-5.4-mini'),
 ]
 
 PROMPT: ty.Final[ty.Sequence[tuple[str, str, str]]] = [
