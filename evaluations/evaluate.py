@@ -9,8 +9,9 @@ import pathlib
 import re
 
 import click
-import umllm
+import pandas
 import typing_extensions as ty
+import umllm
 
 
 MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
@@ -44,14 +45,23 @@ logging.basicConfig(filename='evaluate.log', level=logging.INFO)
     type=pathlib.Path,
     default=pathlib.Path('.'),
     help='Output directory')
+@click.option(
+    '--show',
+    is_flag=True,
+    default=False,
+    help='Show statistics of the input machines.')
 def evaluate(
+        outdir: pathlib.Path,
         path: ty.Iterable[pathlib.Path],
-        outdir: pathlib.Path
+        show: bool
 ) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
         tqdm = (lambda x: x)
+    if show:
+        click.echo(_show(path).to_string())
+        return
     outdir.mkdir(parents=True, exist_ok=True)
     prod = list(itertools.product(
         path, MODEL_PROVIDER, PROMPT, TEMPERATURE, SEED, TRUNCATE))
@@ -169,6 +179,28 @@ def _evaluate(
         fp.flush()
     print('wrote', outfile)
 
+
+def _show(
+        path: ty.Iterable[pathlib.Path]
+) -> pandas.DataFrame:
+    def it() -> ty.Iterable[dict[str, ty.Any]]:
+        for um in map(umllm.UM.load_file, path):
+            um_initial_work = um.work
+            xQ = um.count_machine_states()
+            xS = um.count_machine_symbols(including_blanks=False)
+            xW = um.work_length(including_delimiting_blanks=False)
+            um.run(1000)
+            assert um.halted()
+            xC = um.cycles
+            xD = um.digest()
+            yield {
+                'Q': xQ,
+                'S': xS,
+                'W': xW,
+                'C': xC,
+                'D': xD}
+    return pandas.DataFrame(it()).sort_values(
+        by=['Q', 'S', 'W', 'C', 'C'])
 
 if __name__ == '__main__':
     evaluate()
