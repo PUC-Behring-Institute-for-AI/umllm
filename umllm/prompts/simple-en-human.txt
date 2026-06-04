@@ -1,0 +1,7 @@
+Consider the initial configuration in which the tapes Machine and Work contain the following:
+
+* Machine: {{MACHINE}}
+
+* Work: {{WORK}}
+
+Execute one transition of the simulated Turing machine (steps 1 to 7), display the contents of the Work tape after the transition, and wait for my command.

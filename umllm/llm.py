@@ -31,11 +31,11 @@ class UMLLM(UM):
 
     #: The default system prompt.
     _default_system_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('detailed-en-system.txt')
+        _load_prompt_template('simple-en-system.txt')
 
     #: The default human prompt.
     _default_human_prompt: ty.ClassVar[PromptTemplate] =\
-        _load_prompt_template('detailed-en-human.txt')
+        _load_prompt_template('simple-en-human.txt')
 
     @classmethod
     def _check_prompt_template(

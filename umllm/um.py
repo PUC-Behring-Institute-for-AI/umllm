@@ -59,7 +59,7 @@ class UM:
     SYM_9: ty.Final[str] = '9'
 
     #: The blank symbol.
-    SYM_B: ty.Final[str] = '.'
+    SYM_B: ty.Final[str] = '_'
 
     #: Left-movement indicator.
     SYM_L: ty.Final[str] = 'L'
@@ -88,7 +88,7 @@ class UM:
         '₇': SYM_7,
         '₈': SYM_8,
         '₉': SYM_9,
-        '_': SYM_B,
+        '.': SYM_B,
         '<': SYM_L,
         '>': SYM_R,
         '|': SYM_X,

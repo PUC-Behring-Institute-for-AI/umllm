@@ -58,19 +58,20 @@ def generate(
         preset: bool
 ) -> None:
     if preset:
-        Qs = (2, 8, 16, 32)
-        Ss = (2, 8, 16, 32)
-        Ws = (8, 16, 32, 64, 128)
-        Cs = range(5, 105, 5)
+        Qs = (2, 4, 8)
+        Ss = (2,)
+        Ws = (8, 16, 32, 64)
+        Cs = (8, 16, 32, 64, 128)
+        N = 2
         prod = list(itertools.product(Qs, Ss, Ws, Cs))
         for i, (q, s, w, c) in enumerate(prod, 1):
-            if c > w:
+            if c > 4 * w:
                 continue
             seen = set(outdir.glob(
                 f'Q{q:02d}-S{s:02d}-W{w:02d}-C{c:02d}-*.txt'))
-            if len(seen) < 5:
+            if len(seen) < N:
                 print(f'# {i}/{len(prod)}')
-                _generate(outdir, 5 - len(seen), q, s, w, c)
+                _generate(outdir, N - len(seen), q, s, w, c)
     else:
         _generate(outdir, n, states, symbols, work, cycles)
 
