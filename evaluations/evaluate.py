@@ -14,12 +14,12 @@ import typing_extensions as ty
 import umllm
 
 
-MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
-    ('deepseek', 'deepseek-v4-pro'),
-    ('google-genai', 'gemini-3.1-pro-preview'),
-    ('openai', 'gpt-5.2'),
-    ('openai', 'gpt-5.4'),
-    ('openai', 'gpt-5.4-mini'),
+PROVIDER_MODEL: ty.Final[ty.Sequence[tuple[str, str]]] = [
+    #('deepseek', 'deepseek-v4-pro'),
+    #('google-genai', 'gemini-3.1-pro-preview'),
+    #('openai', 'gpt-5.2'),
+    # ('openai', 'gpt-5.4'),
+    #('openai', 'gpt-5.4-mini'),
 ]
 
 PROMPT: ty.Final[ty.Sequence[tuple[str, str, str]]] = [
@@ -37,7 +37,76 @@ TRUNCATE: ty.Final[ty.Sequence[int | None]] = [None, 0]
 logging.basicConfig(filename='evaluate.log', level=logging.INFO)
 
 
-@click.command()
+@click.group()
+def cli() -> None:
+    pass
+
+
+@cli.command(help='show information about machines')
+@click.argument(
+    'path',
+    type=pathlib.Path,
+    nargs=-1)
+@click.option(
+    '--outdir',
+    type=pathlib.Path,
+    required=False,
+    help='Output directory.')
+def info(
+        outdir: pathlib.Path | None,
+        path: ty.Sequence[pathlib.Path],
+) -> None:
+    df = _um_read_stats_as_dataframe(path, outdir)
+    click.echo(df.to_string(index=False))
+    click.echo()
+    click.echo('== count ==')
+    click.echo(df.count().to_string())
+    click.echo()
+    click.echo('== unique values ==')
+    click.echo(df.apply(lambda col: col.unique()).to_string())
+
+
+def _um_read_stats_as_dataframe(
+        paths: ty.Iterable[pathlib.Path],
+        outdir: pathlib.Path | None = None
+) -> pandas.DataFrame:
+    def it() -> ty.Iterable[dict[str, ty.Any]]:
+        for Q, S, W, C, D, um in map(_um_read_stats, paths):
+            if outdir:
+                outdir.mkdir(parents=True, exist_ok=True)
+                name = f'Q{Q:02d}-S{S:02d}-W{W:02d}-C{C:02d}-{D}.txt'
+                um.dump_file(outdir / name)
+            yield {'Q': Q, 'S': S, 'W': W, 'C': C, 'D': D}
+    return pandas.DataFrame(it()).sort_values(
+        by=['Q', 'S', 'W', 'C', 'D'])
+
+
+def _um_read_stats(
+        path: pathlib.Path
+) -> tuple[int, int, int, int, str, umllm.UM]:
+    um = umllm.UM.load_file(path)
+    um_initial_work = um.work
+    Q = um.count_machine_states()
+    S = um.count_machine_symbols(including_blanks=False)
+    W = um.work_length(including_delimiting_blanks=False)
+    um.run(1000)
+    assert um.halted()
+    C = um.cycles
+    D = um.digest()
+    return Q, S, W, C, D, um.reset()
+
+
+@cli.command(help='evaluate machines using LLMs')
+@click.argument(
+    'provider',
+    type=click.Choice([
+        'deepseek',
+        'google-genai',
+        'ollama',
+        'openai']))
+@click.argument(
+    'model',
+    type=str)
 @click.argument(
     'path',
     type=pathlib.Path,
@@ -48,27 +117,46 @@ logging.basicConfig(filename='evaluate.log', level=logging.INFO)
     default=pathlib.Path('.'),
     help='Output directory')
 @click.option(
+    '--seed',
+    type=int,
+    multiple=True,
+    help='Seed.')
+@click.option(
     '--show',
     is_flag=True,
     default=False,
     help='Show statistics of the input machines.')
+@click.option(
+    '--temperature',
+    type=float,
+    multiple=True,
+    help='Temperature.')
+@click.option(
+    '--truncate',
+    type=int,
+    multiple=True,
+    help='Truncate.')
 def evaluate(
+        model: str,
         outdir: pathlib.Path,
-        path: ty.Iterable[pathlib.Path],
-        show: bool
+        path: ty.Sequence[pathlib.Path],
+        provider: str,
+        seed: ty.Sequence[int],
+        temperature: ty.Sequence[float],
+        truncate: ty.Sequence[int]
 ) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
         tqdm = (lambda x: x)
-    if show:
-        click.echo(_show(path).to_string())
-        return
+    seed = seed or [0]
+    temperature = temperature or [0.0]
+    truncate = truncate or [-1]
     outdir.mkdir(parents=True, exist_ok=True)
     prod = list(itertools.product(
-        path, MODEL_PROVIDER, PROMPT, TEMPERATURE, SEED, TRUNCATE))
-    for p, (provider, model), prompt, temp, seed, truncate in tqdm(prod):
-        tr = f'-tr{truncate}' if truncate is not None else ''
+        path, provider, model, prompt, temperature, seed, truncate))
+    for p, provider, model, prompt, temp, seed, truncate in tqdm(prod):
+        tr = f'-tr{truncate}' if truncate >= 0 else ''
         filename = (
             p.stem
             + f'-{provider}'
@@ -87,9 +175,9 @@ def evaluate(
                 prompt=prompt,
                 temperature=temp,
                 seed=seed,
-                truncate=truncate)
+                truncate=truncate if truncate >= 0 else None)
         else:
-            print('skipping', out)
+            click.echo('skipping', out)
 
 
 _re_machine_stem: ty.Final[re.Pattern[str]] = re.compile(
@@ -106,25 +194,7 @@ def _evaluate(
         seed: int,
         truncate: int | None
 ) -> None:
-    um = umllm.UM.load_file(machine)
-    um_initial_work = um.work
-    xQ = um.count_machine_states()
-    xS = um.count_machine_symbols(including_blanks=False)
-    xW = um.work_length(including_delimiting_blanks=False)
-    um.run(1000)
-    assert um.halted()
-    xC = um.cycles
-    xD = um.digest()
-    m = _re_machine_stem.match(machine.stem)
-    if m is None:
-        raise RuntimeError(f'cannot parse machine filename: {machine}')
-    t = m.groups()
-    yQ, yS, yW, yC = map(int, t[:-1])
-    yD = t[-1]
-    x = (xQ, xS, xW, xC, xD)
-    y = (yQ, yS, yW, yC, yD)
-    if x != y:
-        raise RuntimeError(f'machine spec mismatch: {x} != {y}')
+    Q, S, W, C, D, um = _um_read_stats(machine)
     system_prompt = umllm.UMLLM._load_prompt_template(prompt[1])
     human_prompt = umllm.UMLLM._load_prompt_template(prompt[2])
     llm = umllm.UMLLM.load_file(
@@ -137,16 +207,15 @@ def _evaluate(
         seed=seed,
         truncate=truncate)
     assert llm.machine == um.machine
-    assert llm.halt == um.halt
-    assert llm.work == um_initial_work
+    assert llm.work == um.work
     results = {
         'machine_file': str(machine),
         'machine_dump': um.dump(),
-        'num_states': xQ,
-        'num_symbols': xS,
-        'work_length': xW,
-        'cycles_until_halt': xC,
-        'digest': xD,
+        'num_states': Q,
+        'num_symbols': S,
+        'work_length': W,
+        'cycles_until_halt': C,
+        'digest': D,
         'provider': provider,
         'model': model,
         'prompt': prompt[0],
@@ -179,30 +248,10 @@ def _evaluate(
         json.dump(results, fp, indent=2)
         fp.write('\n')
         fp.flush()
-    print('wrote', outfile)
+    click.echo('wrote', outfile)
 
 
-def _show(
-        path: ty.Iterable[pathlib.Path]
-) -> pandas.DataFrame:
-    def it() -> ty.Iterable[dict[str, ty.Any]]:
-        for um in map(umllm.UM.load_file, path):
-            um_initial_work = um.work
-            xQ = um.count_machine_states()
-            xS = um.count_machine_symbols(including_blanks=False)
-            xW = um.work_length(including_delimiting_blanks=False)
-            um.run(1000)
-            assert um.halted()
-            xC = um.cycles
-            xD = um.digest()
-            yield {
-                'Q': xQ,
-                'S': xS,
-                'W': xW,
-                'C': xC,
-                'D': xD}
-    return pandas.DataFrame(it()).sort_values(
-        by=['Q', 'S', 'W', 'C', 'D'])
+
 
 if __name__ == '__main__':
-    evaluate()
+    cli()
