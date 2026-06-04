@@ -1,0 +1,24 @@
+{
+  "machine_file": "machines.sample/Q02-S02-W32-C05-18eef15d1cd0da5d9ec6a09ada6bdcd783e8f02c6aed27a4db04df716253bad2.txt",
+  "machine_dump": "Q0S0Q0S1RQ0S1Q1.RQ0.Q1S1LQ1S0Q0.RQ1S1Q1S1RQ1.Q1S0L\n\nQ0\n\nS0S0S0S0S1S0S1S1S1S1S1S1S1.Q0S1S1S1S1S0S1S0S0S1S1S0S1S0S1S0S0S1S0",
+  "num_states": 2,
+  "num_symbols": 2,
+  "work_length": 32,
+  "cycles_until_halt": 5,
+  "digest": "18eef15d1cd0da5d9ec6a09ada6bdcd783e8f02c6aed27a4db04df716253bad2",
+  "provider": "deepseek",
+  "model": "deepseek-v4-pro",
+  "prompt": "simple-pt",
+  "temperature": 0.0,
+  "seed": 0,
+  "truncate": null,
+  "messages": [],
+  "cycles": 0,
+  "error": "bad work at cycle 0:\n* before step6:              .S0S0S0S0S1S0S1S1S1Q1S1S1S1S1S0S1S1S1S1S0S1S0S0S1S1S0S1S0S1S0S0S1S0.\n* after step6, expected:     .S0S0S0S0S1S0S1S1S1S1Q1S1S1S1S0S1S1S1S1S0S1S0S0S1S1S0S1S0S1S0S0S1S0.\n* after step6, got from LLM: .S0S0S0S0S1S0S1S1S1S1S1Q1S1S1S1S0S1S1S1S1S0S1S0S0S1S1S0S1S0S1S0S0S1S0.",
+  "halted": null,
+  "usage_metadata": {
+    "input_tokens": 1324,
+    "output_tokens": 3979,
+    "total_tokens": 5303
+  }
+}
