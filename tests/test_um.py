@@ -31,13 +31,13 @@ class Test(unittest.TestCase):
         self.assertEqual(
             UM.check_tape(
                 'Q0S0Q0S0R Q0S1Q0S1R  Q0_Q₁_L|Q1S0Q10S1R Q1S1Q1S0L|Q1_Q10S1R'),
-            'Q0S0Q0S0RQ0S1Q0S1RQ0.Q1.LQ1S0Q10S1RQ1S1Q1S0LQ1.Q10S1R')
+            'Q0S0Q0S0RQ0S1Q0S1RQ0_Q1_LQ1S0Q10S1RQ1S1Q1S0LQ1_Q10S1R')
 
     def test__init__(self) -> None:
         um = UM('Q0S0Q0S0R', 'Q0', 'Q0S0')
         self.assertEqual(um.machine, 'Q0S0Q0S0R')
         self.assertEqual(um.halt, 'Q0')
-        self.assertEqual(um.work, '.Q0S0.')
+        self.assertEqual(um.work, '_Q0S0_')
         self.assertEqual(um.state, '')
         self.assertEqual(um.symbol, '')
         self.assertEqual(um.left_symbol, '')

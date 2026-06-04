@@ -2,13 +2,16 @@
 # Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
+
 import itertools
 import pathlib
 import re
 
 import click
-import umllm
 import typing_extensions as ty
+
+import umllm
 
 _re_digest: ty.Final[re.Pattern[str]] = re.compile(r'^.*-([a-f0-9]+)')
 
@@ -85,7 +88,7 @@ def _generate(
         cycles: int,
 ) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
-    seen = {_re_digest.match(p.stem).group(1)
+    seen = {_re_digest.match(p.stem).group(1)  # type: ignore
             for p in outdir.glob('Q*-S*-W*-C*-*.txt')}
     Q, S, W, C = states, symbols, work, cycles
     while n > 0:
@@ -101,6 +104,7 @@ def _generate(
             print(um.dump(), file=fp)
         click.echo(f'wrote {path}')
         n -= 1
+
 
 if __name__ == '__main__':
     generate()

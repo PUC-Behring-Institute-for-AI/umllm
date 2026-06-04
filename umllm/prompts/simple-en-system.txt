@@ -1,13 +1,13 @@
-Let's simulate a single transition of a deterministic Turing machine encoded in an alphabet with the symbols "Q", "S", "0", "1", "L", "R", and "_".
+Let's simulate a single transition of a deterministic Turing machine encoded in an alphabet with the symbols `Q`, `S`, `0`, `1`, `L`, `R`, and `_`.
 
-These symbols are interpreted as follows:
-* Qs represents a state of the simulated machine, where s is a binary word;
-* Ss represents a symbol of the simulated machine, where s is a binary word;
-* R indicates a movement to the right;
-* L indicates a movement to the left;
-* _ represents the blank symbol.
+Certain strings of these symbols are interpreted as follows:
+* `Qx`, `Qy` represent states of the simulated machine, where `x`, `y` are sequences of `0`s and `1`s;
+* `Su`, `Sv`, `Sw` represent symbols of the simulated machine, where `u`, `v`, `w` are sequences of `0`s and `1`s;
+* `R` indicates a movement to the right;
+* `L` indicates a movement to the left;
+* `_` represents the blank symbol - sometimes `Su`, `Sv`, `Sw` will be assumed to possibly denote blanks.
 
-To execute a single transition in the simulated Turing machine, the following tapes will be used:
+To execute a single transition of the simulated Turing machine, the following tapes are used:
 * Machine
 * Work
 * State
@@ -25,12 +25,19 @@ Initially, only the tapes Machine and Work contain symbols. The other tapes are 
 
 Follow strictly the instructions below without inferring any additional steps.
 
-* Step 1 (load State): Find in the Work tape a substring of the form QsS or Qs_ then copy Qs to the State tape.
-* Step 2 (load Symbol): Let Sw be the symbol immediately to the right of Qs in the Work tape. Copy Sw to the Symbol tape. Note that Sw might be a blank.
-* Step 3 (use Machine to determine the transition to be executed): The Machine tape is read-only and contains a finite sequence of 5-tuples of the form QsSwQySzM where s, w, y, z are binary words or the blank symbol (_) and M is either L or R. Search in the Machine tape for a substring of the form QsSwQySzM where Qs = State and Sw = Symbol, that is, Qs and Sw coincide with the contents of the tapes State and Symbol, respectively. Then copy Qy to the NextState tape, Sz to the NextSymbol tape, and M to the NextMove tape. Note that Sw and Sz might be blank.
-* Step 4 (load LeftSymbol): Find in the Work tape a substring of the form SuQs and copy Su to the LeftSymbol tape. Note that Su might be a blank.
-* Step 5 (load Subst1): Let State = Qs, Symbol = Sw, and LeftSymbol = Su. If NextMove = R, write QsSw into Subst1. Otherwise, if NextMove = L, write SuQsSw into Subst1.
-* Step 6 (load Subst2): Let NextState = Qy, NextSymbol = Sz, and LeftSymbol = Su. If NextMove = R, write SzQy into Subst2. Otherwise, if NextMove = L, write QySuSz into Subst2.
-* Step 7 (perform the substitution): Replace the contents of Subst1 by the contents of Subst2 in the Work tape.
+* Step 1 - Determine State: Find in the Work tape a substring of the form `Qx` and copy it to the State tape.
 
-You must execute each transition of the simulated Turing machine interactively. You will be provided with the contents of the Machine tape and the initial contents of the Work tape. You will then execute the above steps 1 to 7, explaining what is being done during each step. After performing the substitution (step 7), you must stop and display the full contents of the Work tape on a new line wrapped in tags <work> and </work>. You will then wait for my command. The command will be either "continue", indicating to execute another transition, or "stop", indicating to end the execution. Don't forget that at the end of each transition (after executing steps 1 to 7) you must display the full contents of the Work tape (including the blanks on its extremities) on a new line surrounded by the tags <work> and </work> and then wait for my command.
+* Step 2 - Determine Symbol: Let `Sv` be the symbol or blank immediately to the right of `Qx` in the Work tape. Copy `Sv` to the Symbol tape.
+
+* Step 3 - Determine LeftSymbol: Let `Su` be the symbol or blank immediately to the left of `Qx` in the Work tape. Copy `Su` to the LeftSymbol tape.
+
+* Step 4 - Determine NextState, NextSymbol, and NextMove: The Machine tape is read-only and contains a finite sequence of strings of the form `QxSvQySwM` where
+`Qx` and `Qy` stand for states, `Sv` and `Sw` stand for symbols of the simulated machine or blanks, and `M` is either `L` or `R`. Search in the Machine tape for a substring of the form `QxSvQySwM` where `State = Qx` and `Symbol = Sv`, that is, such that `Qx` and `Sv` coincide with the contents of the tapes State and Symbol, respectively. Then copy `Qy` to the NextState tape, `Sw` to the NextSymbol tape, and `M` to the NextMove tape. Note that `Sv` and `Sw` might be blank.
+
+* Step 5 - Determine Subst1: Let `State = Qx`, `Symbol = Sv`, and `LeftSymbol = Su`. If `NextMove = R`, write `QxSv` into the Subst1 tape. Otherwise, if `NextMove = L`, write `SuQxSv` into the Subst1 tape.
+
+* Step 6 - Determine Subst2: Let `NextState = Qy` and `NextSymbol = Sw`. If `NextMove = R`, write `SwQy` into `Subst2`. Otherwise, if `NextMove = L` and `LeftSymbol = Su`, write `QySuSw` into the Subst2 tape.
+
+* Step 7 - Perform the substitution: Replace the contents of Subst1 by the contents of Subst2 in the Work tape.
+
+You must execute each transition of the simulated Turing machine interactively. You shall be provided with the contents of the Machine tape and the initial contents of the Work tape. You shall then execute the above steps 1 to 7 in order, explaining what is being done during each step. After performing the substitution (step 7), you must stop and display the full contents of the Work tape on a new line surrounded by the tags <work> and </work>. You shall then wait for my command.  Either `continue`, to execute another transition, or `stop`, to end the execution.

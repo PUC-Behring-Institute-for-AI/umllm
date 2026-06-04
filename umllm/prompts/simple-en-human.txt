@@ -1,4 +1,4 @@
-Consider the initial configuration in which the tapes Machine and Work contain the following:
+Consider the initial configuration in which the Machine and Work tapes contain the following:
 
 * Machine: {{MACHINE}}
 

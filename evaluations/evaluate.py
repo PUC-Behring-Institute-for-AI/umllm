@@ -2,39 +2,18 @@
 # Copyright (C) 2026 PUC-Rio/PUC-Behring Institute for AI
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
+
 import itertools
 import json
 import logging
 import pathlib
-import re
 
 import click
 import pandas
 import typing_extensions as ty
+
 import umllm
-
-
-PROVIDER_MODEL: ty.Final[ty.Sequence[tuple[str, str]]] = [
-    #('deepseek', 'deepseek-v4-pro'),
-    #('google-genai', 'gemini-3.1-pro-preview'),
-    #('openai', 'gpt-5.2'),
-    # ('openai', 'gpt-5.4'),
-    #('openai', 'gpt-5.4-mini'),
-]
-
-PROMPT: ty.Final[ty.Sequence[tuple[str, str, str]]] = [
-    ('simple-en', 'simple-en-system.txt', 'simple-en-human.txt'),
-    # ('detailed-en', 'detailed-en-system.txt', 'detailed-en-human.txt'),
-    # ('simple-pt', 'simple-pt-system.txt', 'simple-pt-human.txt'),
-]
-
-TEMPERATURE: ty.Final[ty.Sequence[float]] = [0.]
-
-SEED: ty.Final[ty.Sequence[int]] = [0]
-
-TRUNCATE: ty.Final[ty.Sequence[int | None]] = [None, 0]
-
-logging.basicConfig(filename='evaluate.log', level=logging.INFO)
 
 
 @click.group()
@@ -85,7 +64,6 @@ def _um_read_stats(
         path: pathlib.Path
 ) -> tuple[int, int, int, int, str, umllm.UM]:
     um = umllm.UM.load_file(path)
-    um_initial_work = um.work
     Q = um.count_machine_states()
     S = um.count_machine_symbols(including_blanks=False)
     W = um.work_length(including_delimiting_blanks=False)
@@ -112,20 +90,25 @@ def _um_read_stats(
     type=pathlib.Path,
     nargs=-1)
 @click.option(
+    '--log',
+    type=pathlib.Path,
+    required=False,
+    help='Log info messages.')
+@click.option(
     '--outdir',
     type=pathlib.Path,
     default=pathlib.Path('.'),
-    help='Output directory')
+    help='Output directory.')
+@click.option(
+    '--prompt',
+    type=str,
+    multiple=True,
+    help='Prompt.')
 @click.option(
     '--seed',
     type=int,
     multiple=True,
     help='Seed.')
-@click.option(
-    '--show',
-    is_flag=True,
-    default=False,
-    help='Show statistics of the input machines.')
 @click.option(
     '--temperature',
     type=float,
@@ -137,51 +120,54 @@ def _um_read_stats(
     multiple=True,
     help='Truncate.')
 def evaluate(
+        log: pathlib.Path | None,
         model: str,
         outdir: pathlib.Path,
         path: ty.Sequence[pathlib.Path],
+        prompt: ty.Sequence[str],
         provider: str,
         seed: ty.Sequence[int],
         temperature: ty.Sequence[float],
-        truncate: ty.Sequence[int]
+        truncate: ty.Sequence[int],
 ) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
-        tqdm = (lambda x: x)
+        tqdm = (lambda x: x)    # type: ignore
+    if log:
+        if str(log) == '-':
+            logging.basicConfig(level=logging.INFO)
+        else:
+            logging.basicConfig(filename=log, level=logging.INFO)
+    prompt = prompt or ['simple-en']
     seed = seed or [0]
     temperature = temperature or [0.0]
     truncate = truncate or [-1]
     outdir.mkdir(parents=True, exist_ok=True)
-    prod = list(itertools.product(
-        path, provider, model, prompt, temperature, seed, truncate))
-    for p, provider, model, prompt, temp, seed, truncate in tqdm(prod):
-        tr = f'-tr{truncate}' if truncate >= 0 else ''
+    prod = list(itertools.product(path, prompt, temperature, seed, truncate))
+    for path_, prompt_, temperature_, seed_, truncate_ in tqdm(prod):
         filename = (
-            p.stem
+            path_.stem
             + f'-{provider}'
             + f'-{model}'
-            + f'-{prompt[0]}'
-            + f'-temp{temp}'
-            + f'-seed{seed}'
-            + f'{tr}.json')
-        out = outdir / filename
-        if not out.exists():
+            + f'-{prompt_}'
+            + f'-temp{temperature_}'
+            + f'-seed{seed_}'
+            + (f'-tr{truncate_}' if truncate_ >= 0 else '')
+            + '.json')
+        outfile = outdir / filename
+        if not outfile.exists():
             _evaluate(
-                machine=p,
-                outfile=out,
+                machine=path_,
+                outfile=outfile,
                 provider=provider,
                 model=model,
-                prompt=prompt,
-                temperature=temp,
-                seed=seed,
-                truncate=truncate if truncate >= 0 else None)
+                prompt=prompt_,
+                temperature=temperature_,
+                seed=seed_,
+                truncate=truncate_ if truncate_ >= 0 else None)
         else:
-            click.echo('skipping', out)
-
-
-_re_machine_stem: ty.Final[re.Pattern[str]] = re.compile(
-    r'^Q(\d+)-S(\d+)-W(\d+)-C(\d+)-([a-f0-9]+)$')
+            click.echo(f'skipping {outfile} (already exists)')
 
 
 def _evaluate(
@@ -189,14 +175,14 @@ def _evaluate(
         outfile: pathlib.Path,
         provider: str,
         model: str,
-        prompt: tuple[str, str, str],
+        prompt: str,
         temperature: float,
         seed: int,
         truncate: int | None
 ) -> None:
     Q, S, W, C, D, um = _um_read_stats(machine)
-    system_prompt = umllm.UMLLM._load_prompt_template(prompt[1])
-    human_prompt = umllm.UMLLM._load_prompt_template(prompt[2])
+    system_prompt = umllm.UMLLM._load_prompt_template(prompt + '-system.txt')
+    human_prompt = umllm.UMLLM._load_prompt_template(prompt + '-human.txt')
     llm = umllm.UMLLM.load_file(
         machine,
         provider=provider,
@@ -218,7 +204,7 @@ def _evaluate(
         'digest': D,
         'provider': provider,
         'model': model,
-        'prompt': prompt[0],
+        'prompt': prompt,
         'temperature': temperature,
         'seed': seed,
         'truncate': truncate,
@@ -232,25 +218,26 @@ def _evaluate(
         while not llm.halted():
             n = len(llm.messages or [])
             llm.cycle()
+            assert isinstance(results['cycles'], int)
             results['cycles'] += 1
+            assert llm.messages is not None
             assert len(llm.messages) >= n
             m = len(llm.messages) - n
             if m > 0:
                 messages = llm.messages[-m:]
+            assert isinstance(results['messages'], list)
             results['messages'] += list(map(lambda m: m.content, messages))
     except llm.Error as err:
         results['error'] = str(err)
     else:
-        assert llm.work == um.work
+        assert llm.work == um.run(1000).work
         results['halted'] = llm.halted()
     results['usage_metadata'] = llm.usage_metadata
     with open(outfile, 'wt', encoding='utf-8') as fp:
         json.dump(results, fp, indent=2)
         fp.write('\n')
         fp.flush()
-    click.echo('wrote', outfile)
-
-
+    click.echo(f'wrote {outfile}')
 
 
 if __name__ == '__main__':
