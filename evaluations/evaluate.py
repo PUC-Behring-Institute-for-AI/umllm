@@ -17,13 +17,15 @@ import umllm
 MODEL_PROVIDER: ty.Final[ty.Sequence[tuple[str, str]]] = [
     ('deepseek', 'deepseek-v4-pro'),
     ('google-genai', 'gemini-3.1-pro-preview'),
+    ('openai', 'gpt-5.2'),
     ('openai', 'gpt-5.4'),
     ('openai', 'gpt-5.4-mini'),
 ]
 
 PROMPT: ty.Final[ty.Sequence[tuple[str, str, str]]] = [
-    ('detailed-en', 'detailed-en-system.txt', 'detailed-en-human.txt'),
-    ('simple-pt', 'simple-pt-system.txt', 'simple-pt-human.txt'),
+    ('simple-en', 'simple-en-system.txt', 'simple-en-human.txt'),
+    # ('detailed-en', 'detailed-en-system.txt', 'detailed-en-human.txt'),
+    # ('simple-pt', 'simple-pt-system.txt', 'simple-pt-human.txt'),
 ]
 
 TEMPERATURE: ty.Final[ty.Sequence[float]] = [0.]
@@ -200,7 +202,7 @@ def _show(
                 'C': xC,
                 'D': xD}
     return pandas.DataFrame(it()).sort_values(
-        by=['Q', 'S', 'W', 'C', 'C'])
+        by=['Q', 'S', 'W', 'C', 'D'])
 
 if __name__ == '__main__':
     evaluate()
