@@ -635,7 +635,7 @@ class UM:
         return m
 
     def _parse_halt(self) -> str:
-        m = re.match(f'({self._reSn})', self.halt)
+        m = re.match(f'({self._reQn})', self.halt)
         if m is None:
             raise self.Error(f'bad halt: {self.halt}')
         return m.group(1)

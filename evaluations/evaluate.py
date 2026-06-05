@@ -21,6 +21,44 @@ def cli() -> None:
     pass
 
 
+@cli.command(help='generate (equivalent) variants of machines')
+@click.argument(
+    'path',
+    type=pathlib.Path,
+    nargs=-1)
+@click.option(
+    '--outdir',
+    type=pathlib.Path,
+    default=pathlib.Path('.'),
+    help='Output directory.')
+def variant(
+        outdir: pathlib.Path,
+        path: ty.Sequence[pathlib.Path]
+) -> None:
+    outdir.mkdir(parents=True, exist_ok=True)
+    for um in map(_um_gen_variant, path):
+        Q, S, W, C, D, um = _um_read_stats(um)
+        name = f'Q{Q:02d}-S{S:02d}-W{W:02d}-C{C:02d}-{D}.txt'
+        um.dump_file(outdir / name)
+
+
+def _um_gen_variant(
+        path: pathlib.Path
+) -> umllm.UM:
+    um = umllm.UM.load_file(path)
+    qs = um.get_machine_states()
+    tr = {q: f'Q{(int(q[1:], 2) + len(qs)):b}' for q in qs}
+    machine = [(tr[q0], s0, tr[q1], s1, m)  # type: ignore
+               for q0, s0, q1, s1, m in um._parse_machine()]
+    (wl, wq, wr) = um._parse_work()
+    work = (wl, tr[wq], wr)
+    halt = tr[um._parse_halt()]
+    return umllm.UM(
+        machine=''.join(''.join(t) for t in machine),
+        halt=halt,
+        work=''.join(work))
+
+
 @cli.command(help='show information about machines')
 @click.argument(
     'path',
@@ -61,9 +99,12 @@ def _um_read_stats_as_dataframe(
 
 
 def _um_read_stats(
-        path: pathlib.Path
+        path_or_um: pathlib.Path | umllm.UM
 ) -> tuple[int, int, int, int, str, umllm.UM]:
-    um = umllm.UM.load_file(path)
+    if isinstance(path_or_um, umllm.UM):
+        um = path_or_um
+    else:
+        um = umllm.UM.load_file(path_or_um)
     Q = um.count_machine_states()
     S = um.count_machine_symbols(including_blanks=False)
     W = um.work_length(including_delimiting_blanks=False)
