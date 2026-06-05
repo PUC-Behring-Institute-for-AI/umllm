@@ -119,6 +119,7 @@ def _um_read_stats(
 @click.argument(
     'provider',
     type=click.Choice([
+        'anthropic',
         'deepseek',
         'google-genai',
         'ollama',

@@ -64,7 +64,14 @@ class UMLLM(UM):
             return llm
         else:
             provider = kwargs.pop('provider', 'ollama')
-            if provider == 'deepseek':
+            if provider == 'anthropic':
+                from langchain_anthropic import ChatAnthropic
+                if 'seed' in kwargs:
+                    del kwargs['seed']  # not supported
+                if 'temperature' in kwargs:
+                    del kwargs['temperature']  # not supported
+                return ChatAnthropic(**kwargs)
+            elif provider == 'deepseek':
                 from langchain_deepseek import ChatDeepSeek
                 return ChatDeepSeek(**kwargs)
             elif provider == 'google-genai':
