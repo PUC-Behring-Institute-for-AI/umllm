@@ -186,6 +186,7 @@ class UMLLM(UM):
             self.messages.append(HumanMessage('continue'))
         assert self.messages is not None
         # invoke LLM with messages
+        _logger.info('%d messages in history', len(self.messages))
         _logger.info('sending to LLM:\n%s', self.messages[-1].content)
         response = self.llm.invoke(self.messages)
         assert isinstance(response.text, str), type(response.text)
