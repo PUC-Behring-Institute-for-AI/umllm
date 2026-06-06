@@ -26,16 +26,20 @@ html {
 body {
     margin: .5em;
     padding: 0;
+    display: grid;
+    place-items: center;
+    height: 100vh;
 }
 
 main {
     flex: 1;
+    width: 800px;
 }
 
 div.flex-container {
     display: flex;
     align-items: stretch;
-    flex-direction: row;
+    flex-direction: column;
 }
 
 div.flex-container > div {
@@ -50,11 +54,9 @@ div.flex-container > div {
 }
 
 #machine-panel {
-    min-width: 40%;
 }
 
 #log-panel {
-    min-width: 30%;
 }
 
 #copyright {
